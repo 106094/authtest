@@ -133,7 +133,7 @@
       <h2>Hello, <span id="userName"></span>!</h2>
       <p>Welcome to use Allion inventory app</p>
       <button class="btn ghost" onclick="logout()" style="margin-top:8px;">
-        Log out (<span id="userName"></span>)
+        Log out <strong id="loggedInUserName" style="margin-left:4px;"></strong>
       </button>
    <div class="card" id="home">
       <h1>Borrow / Return / Inventory</h1>
@@ -296,7 +296,16 @@ function stopScanner(){
     torchOn = false;
   }
 }
+  
+function showApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 
+  // ← THIS LINE IS FIXED
+  const name = user.name || user.email.split('@')[0];
+  document.getElementById('loggedInUserName').textContent = `(${name})`;
+}
+  
 function closeScanner(){
   document.getElementById('scannerModal').style.display='none';
   stopScanner();
