@@ -1,0 +1,21 @@
+<!doctype html><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Camera Test</title>
+<button id="btn">Start</button>
+<video id="v" autoplay playsinline muted style="width:100%;max-width:420px;background:#000;aspect-ratio:3/4;object-fit:cover"></video>
+<pre id="log" style="white-space:pre-wrap;font-family:system-ui"></pre>
+<script>
+const log = m => (document.getElementById('log').textContent += m + '\n');
+document.getElementById('btn').onclick = async () => {
+  const v = document.getElementById('v');
+  v.muted = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}}});
+    v.srcObject = stream;
+    v.onplaying = () => log('✅ playing');
+    v.onloadedmetadata = () => v.play().catch(()=>{});
+    log('✅ got stream: ' + stream.getVideoTracks()[0].label);
+  } catch (e) {
+    log('❌ getUserMedia failed: ' + (e.name||'') + ' ' + (e.message||e));
+  }
+};
+</script>
