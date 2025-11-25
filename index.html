@@ -58,18 +58,6 @@
     #video { width:100%; background:#000; aspect-ratio:3/4; object-fit:cover }
     .modal .bar { display:flex; gap:8px; padding:10px; background:#0f172a; color:#fff; align-items:center; justify-content:space-between }
     .modal .bar .btn { border-radius:8px; padding:8px 10px; }
-    .logout-fixed {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 1000;
-    }
-    .g_id_signin iframe {
-      pointer-events: none !important;
-    }
-    .g_id_signin div[role="button"] {
-      cursor: pointer !important;
-    }
   </style>
 </head>
 <body>
@@ -140,20 +128,28 @@
 </script>
     
   <div class="shell">
-      <h2>Hello, <span id="userName"></span>!</h2>
-      <p>Welcome to use Allion inventory app</p>
-      <button class="btn ghost" onclick="logout()" style="margin-top:8px margin-right:4px;">
-        Log out
-      </button>
-   <div class="card" id="home">
-      <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Choose an action</p>
-      <div class="row" style="margin-top:12px">
+    <div class="card" id="home">
+      <!-- Header with title left + logout right -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div>
+          <h1>Borrow / Return / Inventory</h1>
+          <p class="muted">Hello, <span id="userName" style="font-weight:600;"></span>!</p>
+          <p class="muted">Choose an action</p>
+        </div>
+    
+        <button class="btn ghost" onclick="logout()">
+          Log out
+        </button>
+      </div>
+    
+      <!-- Action buttons -->
+      <div class="row" style="margin-top:12px; gap:12px;">
         <button class="btn primary full" onclick="openForm('Borrow')">Borrow</button>
         <button class="btn ghost full" onclick="openForm('Return')">Return</button>
         <button class="btn ghost full" onclick="openForm('Inventory')">Inventory</button>
       </div>
     </div>
+    
     <div class="card" id="formCard" style="display:none; margin-top:16px">
       <h2 id="formTitle">Form</h2>
       <div class="grid" style="margin-top:12px">
@@ -310,8 +306,8 @@ function stopScanner(){
 function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const name = user.name || user.email.split('@')[0];
-  document.getElementById('loggedInUserName').textContent = `(${name})`;
+  const displayName = user.name || user.email.split('@')[0];
+  document.getElementById('userName').textContent = displayName;
 }
   
 function closeScanner(){
