@@ -1,21 +1,22 @@
 function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email.toLowerCase();
-  const SHEET_ID='1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE';
-  const SHEET_Name='authname'
+        
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_Name)}&range=${RANGE}`;
   // Save to localStorage the moment we know they are allowed
-  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_Name}&range=A:A`)
-    .then(r => r.text())
-    .then(csv => {
-      const allowedEmails = csv.split(',').map(e => e.trim().toLowerCase().replace(/"/g,''));
-      
-      if (allowedEmails.includes(email)) {
-        localStorage.setItem('authorizedUser', JSON.stringify(payload));  // ← remember forever
-        showLoggedInScreen(payload);
-      } else {
-        document.getElementById('blocked').style.display = 'block';
-      }
-    });
+try {
+    const csv = await fetch(url).then(r => r.text());
+    const allowedEmails = parseCsvToEmails(csv);
+
+    if (allowedEmails.includes(email)) {
+      localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
+      showApp();
+    } else {
+      showBlocked();
+    }
+  } catch (e) {
+    alert('Cannot reach the authorization list. Check Sheet sharing settings.');
+  }
 }
 
 // Run this immediately when the page loads
