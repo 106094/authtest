@@ -1,28 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Borrow / Return / Inventory</title>
+  <style>
+    :root { --primary:#4f46e5; --bg:#0b0c10; --card:#ffffff; }
+    body { margin:0; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f5f7fb; }
+    .shell { max-width:680px; margin:0 auto; padding:20px; }
+    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:20px; }
+    .card * {
+      box-sizing: border-box;
+    }
+    /* Keep inputs fully inside, not overflowing */
+    .card input[type="text"],
+    .card input[type="datetime-local"],
+    .card textarea,
+    .card select {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+    h1,h2{ margin:0 0 8px }
+    .muted{ color:#6b7280; margin-top:0 }
+    .row { display:flex; gap:12px; }
+    .col { flex:1 }
+    .btn { appearance:none; border:0; border-radius:12px; padding:12px 16px; font-weight:600; cursor:pointer; }
+    .btn.primary { background:var(--primary); color:#fff; }
+    .btn.ghost { background:#eef2ff; color:#3730a3; }
+    .btn.full { width:100% }
+    .grid { display:grid; gap:12px }
+    label { display:block; font-size:13px; color:#374151; margin-bottom:6px; }
+    input[type=text] { width:100%; padding:12px 44px 12px 12px; border:1px solid #e5e7eb; border-radius:12px; outline:none; }
+    input[readonly] { background:#f9fafb; }
+    .field {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .field input {
+      flex: 1;
+    }
+    .field .icon-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .icon-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:transparent; padding:6px; cursor:pointer; }
+    .prop-row { display:flex; gap:8px; align-items:center }
+    .prop-row .remove { border:0; background:transparent; color:#ef4444; font-size:20px; cursor:pointer; }
+    .divider { height:1px; background:#e5e7eb; margin:8px 0 4px }
+    .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-size:14px; display:none }
+    /* Scanner modal */
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal > .sheet { background:#000; width:min(720px, 96vw); border-radius:16px; overflow:hidden; }
+    #video { width:100%; background:#000; aspect-ratio:3/4; object-fit:cover }
+    .modal .bar { display:flex; gap:8px; padding:10px; background:#0f172a; color:#fff; align-items:center; justify-content:space-between }
+    .modal .bar .btn { border-radius:8px; padding:8px 10px; }
+  </style>
+</head>
+<body>
 <!-- ============================================= -->
-<!--  GOOGLE SIGN-IN + AUTHORIZATION (embed version) -->
+<!--  GOOGLE SIGN-IN + AUTHORIZATION (embedded) -->
 <!-- ============================================= -->
 <div id="loginScreen" style="text-align:center; padding:40px 20px;">
-  <div class="card" style="display:inline-block; padding:32px 40px;">
-    <h2 style="margin:0 0 16px">Borrow / Return / Inventory</h2>
-    <p class="muted">Please sign in with your Google account</p>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" style="margin:20px auto;"></div>
-    <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
+  <div class="shell">
+    <div class="card" style="display:inline-block; padding:32px 40px;">
+      <h1 style="margin:0 0 16px">Borrow / Return / Inventory</h1>
+      <p class="muted">Please sign in with your Google account</p>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" style="margin:20px auto;"></div>
+      <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
+    </div>
   </div>
 </div>
 
 <div id="blockedScreen" style="display:none; text-align:center; padding:60px 20px; color:#dc2626;">
-  <h2>Sorry</h2>
-  <p>Your email is not on the authorized list.<br>Contact the admin to be added.</p>
+  <div class="shell">
+    <h2>Sorry</h2>
+    <p>Your email is not on the authorized list.<br>Contact the admin to be added.</p>
+    <button class="btn ghost" onclick="location.reload()">Try Again</button>
+  </div>
 </div>
 
 <!-- Your entire existing app content goes here (unchanged) -->
 <div id="app" style="display:none;">
-  <!-- ←←← PUT ALL YOUR ORIGINAL HTML FROM <body> HERE ↓ ↓ ↓ -->
-  .... (all your current cards, forms, scanner modal, etc.)
-  <!-- ←←← END OF YOUR ORIGINAL CONTENT -->
+  <div class="shell">
+    <!-- ←←← PUT ALL YOUR ORIGINAL HTML FROM <body> HERE ↓ ↓ ↓ -->
+    <!-- Example placeholder – replace with your real forms, grids, modals, etc. -->
+    <div class="card">
+      <h2>Hello, <span id="userName"></span>!</h2>
+      <p>Your inventory app is ready. (Your original content goes here.)</p>
+      <button class="btn ghost" onclick="logout()">Log out</button>
+    </div>
+    <!-- Example scanner modal – add your real one -->
+    <div class="modal" id="scannerModal">
+      <div class="sheet">
+        <div class="bar">
+          <span>Scan Item</span>
+          <button class="btn" onclick="closeModal()">Close</button>
+        </div>
+        <video id="video"></video>
+      </div>
+    </div>
+    <!-- ←←← END OF YOUR ORIGINAL CONTENT -->
+  </div>
 </div>
 
-<!-- Google Platform + One-tap library -->
+<!-- Google Platform Library -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
@@ -41,9 +126,10 @@ function parseCsvToEmails(csvText) {
     .filter(Boolean);
 }
 
-function showApp() {
+function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  if (user) document.getElementById('userName').textContent = user.name || user.email;
 }
 
 function showBlocked() {
@@ -51,15 +137,21 @@ function showBlocked() {
   document.getElementById('blockedScreen').style.display = 'block';
 }
 
-// Check if user was already authorized in this browser
+function logout() {
+  localStorage.removeItem('inventoryAppUser');
+  location.reload();
+}
+
+// Check if user was already authorized (bypass login forever)
 window.addEventListener('load', () => {
   const saved = localStorage.getItem('inventoryAppUser');
   if (saved) {
-    showApp();
-    return; // skip Google button completely
+    const user = JSON.stringify(saved);
+    showApp(user);
+    return; // Skip login completely
   }
 
-  // Otherwise initialize Google Sign-In
+  // Initialize Google Sign-In
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
     callback: handleCredentialResponse,
@@ -76,28 +168,24 @@ async function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email.toLowerCase();
 
-  // Fetch allowed list from your Google Sheet (public link)
+  // Build safe URL (handles & , spaces in sheet name)
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
+  
   try {
     const csv = await fetch(url).then(r => r.text());
     const allowedEmails = parseCsvToEmails(csv);
 
     if (allowedEmails.includes(email)) {
-      localStorage.setItem('inventoryAppUser', JSON.stringify(payload)); // remember forever
-      showApp();
+      localStorage.setItem('inventoryAppUser', JSON.stringify(payload)); // Remember forever
+      showApp(payload);
     } else {
       showBlocked();
     }
   } catch (e) {
-    alert('Error checking authorization. Check internet connection or Sheet sharing settings.');
+    console.error('Auth error:', e);
+    alert('Error checking authorization. Check Sheet sharing or internet.');
   }
 }
-
-// Optional: Add a logout button somewhere in your app
-function logout() {
-  localStorage.removeItem('inventoryAppUser');
-  location.reload();
-}
-// Example logout button you can place anywhere inside #app:
-// <button class="btn ghost" onclick="logout()" style="margin:20px 0;">Log out</button>
 </script>
+</body>
+</html>
