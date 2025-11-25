@@ -87,15 +87,12 @@
 <div id="app" style="display:none;">
   <div class="shell">
     <script type="module">
-  import {
-    BrowserMultiFormatReader,
-    BrowserCodeReader
-  } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
-
-  import {
-    DecodeHintType,
-    BarcodeFormat
-  } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
+      import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      window.ZXingBrowser = { BrowserMultiFormatReader, DecodeHintType, hints };
+      console.log("ZXing loaded");
 
   // ---- build hints ----
   const hints = new Map();
@@ -121,7 +118,7 @@
 </script>
 
   <div class="shell">
-    <div class="card" id="home">
+   <div class="card" id="home">
       <h1>Borrow / Return / Inventory</h1>
       <p class="muted">Choose an action</p>
       <div class="row" style="margin-top:12px">
@@ -129,24 +126,19 @@
         <button class="btn ghost full" onclick="openForm('Return')">Return</button>
         <button class="btn ghost full" onclick="openForm('Inventory')">Inventory</button>
       </div>
+      <div style="margin-top:20px">
+        <button class="btn ghost" onclick="logout()">Log out (<span id="userName"></span>)</button>
+      </div>
     </div>
-
     <div class="card" id="formCard" style="display:none; margin-top:16px">
       <h2 id="formTitle">Form</h2>
       <div class="grid" style="margin-top:12px">
-        <div>
-          <label>Date</label>
-          <input id="date" type="text" readonly>
-        </div>
-
-       <div >
-        <label>Name</label>
-       </div>
+        <div><label>Date</label><input id="date" type="text" readonly></div>
+        <div><label>Name</label></div>
         <div class="field">
           <input id="name" type="text" placeholder="Scan or type a name">
-          <button class="icon-btn" aria-label="Scan name" onclick="openScanner('name')">📷</button>
+          <button class="icon-btn" aria-label="Scan name" onclick="openScanner('name')">Camera</button>
         </div>
-
         <div>
           <div class="row" style="align-items:center; justify-content:space-between">
             <label style="margin:0">Property ID(s)</label>
@@ -154,7 +146,6 @@
           </div>
           <div id="props" class="grid" style="margin-top:8px"></div>
         </div>
-
         <div class="divider"></div>
         <div class="row">
           <button class="btn full" onclick="goHome()">Back</button>
@@ -165,18 +156,18 @@
   </div>
 
   <!-- Scanner modal -->
-  <div class="modal" id="scannerModal" role="dialog" aria-modal="true" aria-label="Scanner">
-    <div class="sheet">
-      <video id="video" autoplay playsinline muted></video>
-      <div class="bar">
-        <div>Point camera at a QR code…</div>
-        <div>
-          <button class="btn" onclick="toggleTorch()">Toggle torch</button>
-          <button class="btn" onclick="closeScanner()">Close</button>
+  <div class="modal" id="scannerModal" role="dialog">
+      <div class="sheet">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="bar">
+          <div>Point camera at a QR code…</div>
+          <div>
+            <button class="btn" onclick="toggleTorch()">Torch</button>
+            <button class="btn" onclick="closeScanner()">Close</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
   <div class="toast" id="toast"></div>
 
@@ -420,7 +411,7 @@ async function openScanner(targetId=null, directInputEl=null) {
 // ==================== CONFIGURATION ====================
   const SHEET_ID        = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE'; 
   const CLIENT_ID       = '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com';
-  const SHEET_Name= 'authnames'
+  const SHEET_NAME= 'authnames'
   const RANGE   = 'A:A';        // change sheet name if needed
 // =====================================================
 
