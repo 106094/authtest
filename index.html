@@ -1,373 +1,103 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Borrow / Return / Inventory</title>
-  <style>
-    :root { --primary:#4f46e5; --bg:#0b0c10; --card:#ffffff; }
-    body { margin:0; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f5f7fb; }
-    .shell { max-width:680px; margin:0 auto; padding:20px; }
-    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:20px; }
-    .card * {
-      box-sizing: border-box;
-    }
-    /* Keep inputs fully inside, not overflowing */
-    .card input[type="text"],
-    .card input[type="datetime-local"],
-    .card textarea,
-    .card select {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-      }
-    h1,h2{ margin:0 0 8px }
-    .muted{ color:#6b7280; margin-top:0 }
-    .row { display:flex; gap:12px; }
-    .col { flex:1 }
-    .btn { appearance:none; border:0; border-radius:12px; padding:12px 16px; font-weight:600; cursor:pointer; }
-    .btn.primary { background:var(--primary); color:#fff; }
-    .btn.ghost { background:#eef2ff; color:#3730a3; }
-    .btn.full { width:100% }
-    .grid { display:grid; gap:12px }
-    label { display:block; font-size:13px; color:#374151; margin-bottom:6px; }
-    input[type=text] { width:100%; padding:12px 44px 12px 12px; border:1px solid #e5e7eb; border-radius:12px; outline:none; }
-    input[readonly] { background:#f9fafb; }
-    .field {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .field input {
-      flex: 1;
-    }
-    .field .icon-btn {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .icon-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:transparent; padding:6px; cursor:pointer; }
-    .prop-row { display:flex; gap:8px; align-items:center }
-    .prop-row .remove { border:0; background:transparent; color:#ef4444; font-size:20px; cursor:pointer; }
-    .divider { height:1px; background:#e5e7eb; margin:8px 0 4px }
-    .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-size:14px; display:none }
-    /* Scanner modal */
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:16px; }
-    .modal > .sheet { background:#000; width:min(720px, 96vw); border-radius:16px; overflow:hidden; }
-    #video { width:100%; background:#000; aspect-ratio:3/4; object-fit:cover }
-    .modal .bar { display:flex; gap:8px; padding:10px; background:#0f172a; color:#fff; align-items:center; justify-content:space-between }
-    .modal .bar .btn { border-radius:8px; padding:8px 10px; }
-
-  </style>
-</head>
-<body>
-<script type="module">
-  import {
-    BrowserMultiFormatReader,
-    BrowserCodeReader
-  } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
-
-  import {
-    DecodeHintType,
-    BarcodeFormat
-  } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
-
-  // ---- build hints ----
-  const hints = new Map();
-  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-    BarcodeFormat.QR_CODE,
-    BarcodeFormat.CODE_128,
-    BarcodeFormat.CODE_39,
-    BarcodeFormat.EAN_13,
-    BarcodeFormat.EAN_8
-  ]);
-  hints.set(DecodeHintType.TRY_HARDER, true);
-
-  // ---- expose global ----
-  window.ZXingBrowser = {
-    BrowserMultiFormatReader,
-    BrowserCodeReader,
-    DecodeHintType,
-    BarcodeFormat,
-    hints
-  };
-
-  console.log("ZXing 0.1.5 + hints loaded");
-</script>
-
-  <div class="shell">
-    <div class="card" id="home">
-      <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Choose an action</p>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary full" onclick="openForm('Borrow')">Borrow</button>
-        <button class="btn ghost full" onclick="openForm('Return')">Return</button>
-        <button class="btn ghost full" onclick="openForm('Inventory')">Inventory</button>
-      </div>
-    </div>
-
-    <div class="card" id="formCard" style="display:none; margin-top:16px">
-      <h2 id="formTitle">Form</h2>
-      <div class="grid" style="margin-top:12px">
-        <div>
-          <label>Date</label>
-          <input id="date" type="text" readonly>
-        </div>
-
-       <div >
-        <label>Name</label>
-       </div>
-        <div class="field">
-          <input id="name" type="text" placeholder="Scan or type a name">
-          <button class="icon-btn" aria-label="Scan name" onclick="openScanner('name')">📷</button>
-        </div>
-
-        <div>
-          <div class="row" style="align-items:center; justify-content:space-between">
-            <label style="margin:0">Property ID(s)</label>
-            <button class="btn ghost" onclick="addPropertyRow()">+ Add line</button>
-          </div>
-          <div id="props" class="grid" style="margin-top:8px"></div>
-        </div>
-
-        <div class="divider"></div>
-        <div class="row">
-          <button class="btn full" onclick="goHome()">Back</button>
-          <button class="btn primary full" onclick="submitForm()">Confirm / Submit</button>
-        </div>
-      </div>
-    </div>
+<!-- ============================================= -->
+<!--  GOOGLE SIGN-IN + AUTHORIZATION (embed version) -->
+<!-- ============================================= -->
+<div id="loginScreen" style="text-align:center; padding:40px 20px;">
+  <div class="card" style="display:inline-block; padding:32px 40px;">
+    <h2 style="margin:0 0 16px">Borrow / Return / Inventory</h2>
+    <p class="muted">Please sign in with your Google account</p>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" style="margin:20px auto;"></div>
+    <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
   </div>
+</div>
 
-  <!-- Scanner modal -->
-  <div class="modal" id="scannerModal" role="dialog" aria-modal="true" aria-label="Scanner">
-    <div class="sheet">
-      <video id="video" autoplay playsinline muted></video>
-      <div class="bar">
-        <div>Point camera at a QR code…</div>
-        <div>
-          <button class="btn" onclick="toggleTorch()">Toggle torch</button>
-          <button class="btn" onclick="closeScanner()">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<div id="blockedScreen" style="display:none; text-align:center; padding:60px 20px; color:#dc2626;">
+  <h2>Sorry</h2>
+  <p>Your email is not on the authorized list.<br>Contact the admin to be added.</p>
+</div>
 
-  <div class="toast" id="toast"></div>
+<!-- Your entire existing app content goes here (unchanged) -->
+<div id="app" style="display:none;">
+  <!-- ←←← PUT ALL YOUR ORIGINAL HTML FROM <body> HERE ↓ ↓ ↓ -->
+  .... (all your current cards, forms, scanner modal, etc.)
+  <!-- ←←← END OF YOUR ORIGINAL CONTENT -->
+</div>
+
+<!-- Google Platform + One-tap library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
-/** ====== CONFIG ====== */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoZUVTfbtIAgnyjNm2feyn7rZtIRwxzG9dwUwBvVSlJIet0dVv9wIFTsRRu9nL1pO1dA/exec'; 
+// ==================== CONFIGURATION ====================
+  const SHEET_ID        = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE'; 
+  const CLIENT_ID       = 'YOUR_G941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.comOOGLE_CLIENT_ID_HERE';
+  const SHEET_Name = 'authnames'
+  const RANGE   = 'A:A';        // change sheet name if needed
+// =====================================================
 
-/** ====== STATE ====== */
-let mode = 'Borrow';
-let currentScanTargetId = null;
-let codeReader = null;
-let currentDeviceId = null;
-let torchOn = false;
-let currentInputEl = null;
-/** ====== UTILS ====== */
-function fmtDate(d=new Date()){
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function toast(msg, ms=2000){
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.display='block';
-  clearTimeout(el._t); el._t = setTimeout(()=> el.style.display='none', ms);
-}
-function goHome(){
-  stopScanner();
-  document.getElementById('formCard').style.display='none';
-  document.getElementById('home').style.display='block';
+function parseCsvToEmails(csvText) {
+  return csvText
+    .split('\n')
+    .flatMap(line => line.split(','))
+    .map(e => e.replace(/"/g, '').trim().toLowerCase())
+    .filter(Boolean);
 }
 
-/** ====== HOME -> FORM ====== */
-function openForm(selected){
-  mode = selected;
-  document.getElementById('home').style.display='none';
-  document.getElementById('formCard').style.display='block';
-  document.getElementById('formTitle').textContent = `${mode} Form`;
-  document.getElementById('date').value = fmtDate();
-  document.getElementById('name').value = '';
-  const wrap = document.getElementById('props');
-  wrap.innerHTML = '';
-  addPropertyRow(); // start with one
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 }
 
-/** ====== PROPERTY ROWS ====== */
-function updateRemoveButtons() {
-  const rows = document.querySelectorAll('#props .prop-row');
-  rows.forEach((row) => {
-    const btn = row.querySelector('.remove');
-    if (!btn) return;
-    btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+function showBlocked() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('blockedScreen').style.display = 'block';
+}
+
+// Check if user was already authorized in this browser
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('inventoryAppUser');
+  if (saved) {
+    showApp();
+    return; // skip Google button completely
+  }
+
+  // Otherwise initialize Google Sign-In
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: false
   });
-}
 
-function addPropertyRow(value=''){
-  const wrap = document.getElementById('props');
-  const idx = wrap.children.length;
-  const row = document.createElement('div');
-  row.className = 'prop-row';
-  row.innerHTML = `
-    <div class="field col">
-      <input type="text" placeholder="Property ID" value="${value.replaceAll('"','&quot;')}" oninput="maybeAutogrow(this)">
-      <button class="icon-btn" aria-label="Scan Property" onclick="openScanner(null, this.previousElementSibling)">📷</button>
-    </div>
-    <button class="remove" title="Remove" onclick="removeRow(this)">✕</button>
-  `;
-  wrap.appendChild(row);
-  maybeAutogrow(row.querySelector('input'));
-  // Auto-add a new empty line when last line gets non-empty
-  const input = row.querySelector('input');
-  input.addEventListener('input', ()=>{
-    const isLast = row === wrap.lastElementChild;
-    if (isLast && input.value.trim()!=='') addPropertyRow();
-     updateRemoveButtons(); 
-  }, {once:false});
-   updateRemoveButtons(); 
-}
-
-function maybeAutogrow(input){
-  // noop placeholder; could auto-resize if needed
-}
-
-function openScannerForSibling(btn){
-  const input = btn.parentElement.querySelector('input');
-  input && openScanner(null, input);
-}
-
-function removeRow(btn){
-  const wrap = document.getElementById('props');
-  if (wrap.children.length <= 1) { toast('Keep at least one line'); return; }
-  const row = btn.closest('.prop-row');
-  row && wrap.removeChild(row);
-   updateRemoveButtons(); 
-}
-
-async function toggleTorch(){
-  try{
-    const stream = document.getElementById('video').srcObject;
-    const track = stream?.getVideoTracks?.()[0];
-    if (!track) return;
-    const caps = track.getCapabilities?.();
-    if (!caps || !caps.torch) { toast('Torch not supported'); return; }
-    torchOn = !torchOn;
-    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-  }catch(e){ toast('Torch failed'); }
-}
-
-function stopScanner(){
-  try{
-    codeReader && codeReader.reset();
-  }catch{} finally{
-    codeReader = null;
-    torchOn = false;
-  }
-}
-
-function closeScanner(){
-  document.getElementById('scannerModal').style.display='none';
-  stopScanner();
-}
-
-/** ====== SUBMIT ====== */
-async function submitForm(){
-  const date = document.getElementById('date').value.trim();
-  const name = document.getElementById('name').value.trim();
-  const allInputs = Array.from(
-    document.querySelectorAll('#props .prop-row input')
+  google.accounts.id.renderButton(
+    document.querySelector('.g_id_signin'),
+    { theme: "outline", size: "large" }
   );
-  const ids = allInputs.map(i => i.value.trim()).filter(Boolean);
-  // Validate Name
-  if (!name.trim()) {
-    toast('Name cannot be empty');
-    return;
-  }
-  if (ids.length === 0) {
-    toast('Enter at least one Property ID');
-    return;
-  }
-   
- const payload = { mode, date, name, propertyIds: ids };
+});
 
- // Must have at least one non-empty property ID
- if (ids.length === 0) {
-   toast('Enter at least one Property ID');
-   return;
- }
-  // NOTE: Apps Script often redirects (302) and lacks CORS headers.
-  // Use no-cors fire-and-forget; we assume success if fetch doesn't throw.
-  try{
-    await fetch(SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors', // avoids CORS preflight; can't read response
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(payload),
-    });
-    toast(`Submitted ${ids.length} item(s)`);
-    // Return to home after a short delay
-    setTimeout(()=> goHome(), 400);
-  }catch(e){
-    toast('Submit failed: ' + e);
-  }
-}
+async function handleCredentialResponse(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const email = payload.email.toLowerCase();
 
-/** ====== BOOT ====== */
-if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
-  document.body.innerHTML = '<div class="shell"><div class="card"><h2>HTTPS required</h2><p>Camera access needs HTTPS. Please host this page on HTTPS (GitHub Pages / Netlify) or run locally at http://localhost.</p></div></div>';
-}
-/** ====== SCANNER ====== */
-async function openScanner(targetId=null, directInputEl=null) {
-  if (!window.ZXingBrowser) { alert("ZXingBrowser not loaded yet"); return; }
-  const { BrowserMultiFormatReader, BrowserCodeReader, hints } = window.ZXingBrowser;
-  codeReader = new BrowserMultiFormatReader(hints);
-  currentInputEl = directInputEl || (targetId ? document.getElementById(targetId) : null);
-
-  document.getElementById('scannerModal').style.display='flex';
-
-  const video = document.getElementById('video');
-  video.setAttribute('playsinline', 'true');
-  video.setAttribute('autoplay', 'true');
-  video.muted = true;
-
-  const cb = (result, err) => {
-    if (!result) return;
-    const text = result.getText();
-    if (currentInputEl) {
-      currentInputEl.value = text;
-      currentInputEl.dispatchEvent(new Event('input', {bubbles:true}));
-    }
-    currentInputEl = null;
-    closeScanner();
-    toast('Scanned');
-  };
-
+  // Fetch allowed list from your Google Sheet (public link)
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
   try {
-    // 1) Ask browser for a decent resolution from the back camera
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
-    video.srcObject = stream;
-    await new Promise(r => {
-      video.onloadedmetadata = () => {
-        video.play().catch(()=>{});
-        r();
-      };
-    });
+    const csv = await fetch(url).then(r => r.text());
+    const allowedEmails = parseCsvToEmails(csv);
 
-    // 2) Let ZXing decode continuously from this video element
-    await codeReader.decodeFromVideoElement(video, cb);
+    if (allowedEmails.includes(email)) {
+      localStorage.setItem('inventoryAppUser', JSON.stringify(payload)); // remember forever
+      showApp();
+    } else {
+      showBlocked();
+    }
   } catch (e) {
-    toast(`Camera error: ${e.name || 'Error'} — ${e.message || e}`);
+    alert('Error checking authorization. Check internet connection or Sheet sharing settings.');
   }
-} 
+}
+
+// Optional: Add a logout button somewhere in your app
+function logout() {
+  localStorage.removeItem('inventoryAppUser');
+  location.reload();
+}
+// Example logout button you can place anywhere inside #app:
+// <button class="btn ghost" onclick="logout()" style="margin:20px 0;">Log out</button>
 </script>
-</body>
-</html>
