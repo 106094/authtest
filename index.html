@@ -478,23 +478,64 @@ async function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email.toLowerCase();
 
-  // Build safe URL (handles & , spaces in sheet name)
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
-  
+
   try {
     const csv = await fetch(url).then(r => r.text());
-    const allowedEmails = parseCsvToEmails(csv);
+    const allowedList = parseCsvToEmails(csv);  // ← renamed for clarity
 
-    if (allowedEmails.includes(email)) {
-      localStorage.setItem('inventoryAppUser', JSON.stringify(payload)); // Remember forever
-      showApp(payload);
-    } else {
-      showBlocked();
+    // Step 1: Check direct email match
+    if (allowedList.includes(email)) {
+      saveAndEnter(payload);
+      return;
     }
+
+    // Step 2: Check if any entry is a Google Group → verify membership
+    for (const entry of allowedList) {
+      if (entry.includes('@') && !entry.includes('/')) {  // looks like a group email
+        const isMember = await checkGroupMembership(entry.trim(), email);
+        if (isMember) {
+          saveAndEnter(payload);
+          return;
+        }
+      }
+    }
+
+    // If we get here → not authorized
+    showBlocked();
+
   } catch (e) {
     console.error('Auth error:', e);
-    alert('Error checking authorization. Check Sheet sharing or internet.');
+    alert('Failed to check authorization. Check Sheet sharing or internet.');
   }
+
+  // Helper: save user + show app
+  function saveAndEnter(user) {
+    localStorage.setItem('inventoryAppUser', JSON.stringify(user));
+    showApp(user);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Check if user is member of a Google Group (via public API key)
+// ──────────────────────────────────────────────────────────────
+async function checkGroupMembership(groupEmail, userEmail) {
+  // ←←← REPLACE THIS WITH YOUR REAL GOOGLE API KEY ←←←
+  const API_KEY = 'AIzaSyDQVMxk1TdJabBaE7xwYyRImQYifsc8gVY';  // ← get from https://console.cloud.google.com/apis/credentials
+
+  try {
+    const resp = await fetch(
+      `https://admin.googleapis.com/admin/directory/v1/groups/${encodeURIComponent(groupEmail)}/hasMember/${encodeURIComponent(userEmail)}?key=${API_KEY}`
+    );
+
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.isMember === true;
+    }
+  } catch (e) {
+    console.warn('Group check failed (maybe API key missing or rate-limited):', e);
+  }
+  return false;  // on error → deny access (safe default)
 }
 </script>
 </body>
