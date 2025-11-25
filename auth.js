@@ -2,7 +2,7 @@ function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email.toLowerCase();
         
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_Name)}&range=${RANGE}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
   // Save to localStorage the moment we know they are allowed
 try {
     const csv = await fetch(url).then(r => r.text());
