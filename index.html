@@ -116,8 +116,13 @@
 
   console.log("ZXing 0.1.5 + hints loaded");
 </script>
-
+    
   <div class="shell">
+    <div class="card">
+      <h2>Hello, <span id="userName"></span>!</h2>
+      <p>Your inventory app is ready. (Your original content goes here.)</p>
+      <button class="btn ghost" onclick="logout()">Log out</button>
+    </div>
    <div class="card" id="home">
       <h1>Borrow / Return / Inventory</h1>
       <p class="muted">Choose an action</p>
@@ -384,23 +389,7 @@ async function openScanner(targetId=null, directInputEl=null) {
   }
 } 
 </script>
-    <!-- Example placeholder – replace with your real forms, grids, modals, etc. -->
-    <div class="card">
-      <h2>Hello, <span id="userName"></span>!</h2>
-      <p>Your inventory app is ready. (Your original content goes here.)</p>
-      <button class="btn ghost" onclick="logout()">Log out</button>
-    </div>
-    <!-- Example scanner modal – add your real one -->
-    <div class="modal" id="scannerModal">
-      <div class="sheet">
-        <div class="bar">
-          <span>Scan Item</span>
-          <button class="btn" onclick="closeModal()">Close</button>
-        </div>
-        <video id="video"></video>
-      </div>
-    </div>
-    <!-- ←←← END OF YOUR ORIGINAL CONTENT -->
+
   </div>
 </div>
 
