@@ -76,12 +76,22 @@
 <!-- ============================================= -->
 <!--  GOOGLE SIGN-IN + AUTHORIZATION (embedded) -->
 <!-- ============================================= -->
-<div id="loginScreen" style="text-align:center; padding:40px 20px;">
-  <div class="shell">
-    <div class="card" style="display:inline-block; padding:32px 40px;">
-      <h1 style="margin:0 0 16px">Borrow / Return / Inventory</h1>
+<div id="loginScreen">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="text-align:center; max-width:400px; width:100%;">
+      <h1>Borrow / Return / Inventory</h1>
       <p class="muted">Please sign in with your Google account</p>
-      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" style="margin:20px auto;"></div>
+
+      <div style="margin:30px 0;">
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="outline"
+             data-text="signin_with"
+             data-shape="rectangular">
+        </div>
+      </div>
+
       <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
     </div>
   </div>
