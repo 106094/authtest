@@ -261,33 +261,26 @@ async function handleCredentialResponse(response) {
     const resp = await fetch(AUTH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'login-test' })
+      body: JSON.stringify({
+        action: 'login-test',
+        email: payload.email  // 👈 send email
+      })
     });
 
-    const text = await resp.text();
-    console.log('login-test raw response:', text);
-
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch (err) {
-      console.error('JSON parse failed', err);
-      showBlocked();
-      return;
-    }
+    const result = await resp.json();
 
     if (result.status === 'authorized') {
       localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
       showApp(payload);
     } else {
-      console.warn('Backend said NOT authorized:', result);
       showBlocked();
     }
   } catch (e) {
-    console.error('login-test fetch failed', e);
+    console.error(e);
     showBlocked();
   }
 }
+
 
 
 // ================== APP LOGIC (your existing code – cleaned) ==================
@@ -338,22 +331,35 @@ function addPropertyRow(val='') {
 
 async function submitForm() {
   const name = document.getElementById('name').value.trim();
-  const ids = Array.from(document.querySelectorAll('#props input')).map(i => i.value.trim()).filter(Boolean);
+  const ids = Array.from(document.querySelectorAll('#props input'))
+                   .map(i => i.value.trim())
+                   .filter(Boolean);
+
   if (!name) return toast('Name required');
   if (!ids.length) return toast('At least one Property ID required');
+
+  const savedUser = JSON.parse(localStorage.getItem('inventoryAppUser') || '{}');
+  const email = savedUser.email || '';
 
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify({ mode, name, propertyIds: ids, date: document.getElementById('date').value })
+      body: JSON.stringify({
+        mode,
+        name,
+        propertyIds: ids,
+        date: document.getElementById('date').value,
+        email  // 👈 send email
+      })
     });
     toast(`Submitted ${ids.length} item(s)`);
     setTimeout(goHome, 600);
-  } catch(e) {
+  } catch (e) {
     toast('Submit failed');
   }
 }
+
 
 // ================== SCANNER ==================
 async function openScanner(targetId=null, el=null) {
