@@ -488,6 +488,17 @@ async function handleCredentialResponse(response) {
     console.error('Auth error:', e);
     alert('Error checking authorization. Check Sheet sharing or internet.');
   }
+  google.accounts.id.renderButton(
+  document.getElementById("buttonDiv"),
+  {
+    theme: "outline",
+    size: "large",
+    text: "signin_with",
+    shape: "rectangular",
+    width: 300,
+    logo_alignment: "left"
+  }
+);
 }
 </script>
 </body>
