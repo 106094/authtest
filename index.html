@@ -309,134 +309,221 @@ async function handleCredentialResponse(response) {
   }
 }
 
-
-
-
-// ================== APP LOGIC (your existing code – cleaned) ==================
-let mode = '', codeReader = null, currentInputEl = null, torchOn = false;
-
-function fmtDate(d = new Date()) {
+/** ====== STATE ====== */
+let mode = 'Borrow';
+let currentScanTargetId = null;
+let codeReader = null;
+let currentDeviceId = null;
+let torchOn = false;
+let currentInputEl = null;
+/** ====== UTILS ====== */
+function fmtDate(d=new Date()){
   const pad = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
-function toast(msg, ms=2500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), ms);
+function toast(msg, ms=2000){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display='block';
+  clearTimeout(el._t); el._t = setTimeout(()=> el.style.display='none', ms);
 }
-
-function goHome() {
+function goHome(){
   stopScanner();
-  document.getElementById('formCard').style.display = 'none';
-  document.getElementById('home').style.display = 'block';
+  document.getElementById('formCard').style.display='none';
+  document.getElementById('home').style.display='block';
 }
 
-function openForm(m) {
-  mode = m;
-  document.getElementById('home').style.display = 'none';
-  document.getElementById('formCard').style.display = 'block';
-  document.getElementById('formTitle').textContent = mode + ' Form';
+/** ====== HOME -> FORM ====== */
+function openForm(selected){
+  mode = selected;
+  document.getElementById('home').style.display='none';
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('formTitle').textContent = `${mode} Form`;
   document.getElementById('date').value = fmtDate();
   document.getElementById('name').value = '';
-  document.getElementById('props').innerHTML = '';
-  addPropertyRow();
+  const wrap = document.getElementById('props');
+  wrap.innerHTML = '';
+  addPropertyRow(); // start with one
 }
 
-function addPropertyRow(val='') {
+/** ====== PROPERTY ROWS ====== */
+function updateRemoveButtons() {
+  const rows = document.querySelectorAll('#props .prop-row');
+  rows.forEach((row) => {
+    const btn = row.querySelector('.remove');
+    if (!btn) return;
+    btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+  });
+}
+
+function addPropertyRow(value=''){
   const wrap = document.getElementById('props');
+  const idx = wrap.children.length;
   const row = document.createElement('div');
   row.className = 'prop-row';
   row.innerHTML = `
-    <input type="text" placeholder="Property ID" value="${val}" style="flex:1;">
-    <button class="icon-btn" onclick="openScanner(null, this.previousElementSibling)">📷</button>
-    <button class="remove" onclick="this.closest('.prop-row').remove()">✕</button>
+    <div class="field col">
+      <input type="text" placeholder="Property ID" value="${value.replaceAll('"','&quot;')}" oninput="maybeAutogrow(this)">
+      <button class="icon-btn" aria-label="Scan Property" onclick="openScanner(null, this.previousElementSibling)">📷</button>
+    </div>
+    <button class="remove" title="Remove" onclick="removeRow(this)">✕</button>
   `;
   wrap.appendChild(row);
-  if (wrap.children.length === 1) addPropertyRow(); // always have empty line
+  maybeAutogrow(row.querySelector('input'));
+  // Auto-add a new empty line when last line gets non-empty
+  const input = row.querySelector('input');
+  input.addEventListener('input', ()=>{
+    const isLast = row === wrap.lastElementChild;
+    if (isLast && input.value.trim()!=='') addPropertyRow();
+     updateRemoveButtons(); 
+  }, {once:false});
+   updateRemoveButtons(); 
 }
 
-async function submitForm() {
-  const name = document.getElementById('name').value.trim();
-  const ids = Array.from(document.querySelectorAll('#props input'))
-                   .map(i => i.value.trim())
-                   .filter(Boolean);
-
-  if (!name) return toast('Name required');
-  if (!ids.length) return toast('At least one Property ID required');
-
-  const savedUser = JSON.parse(localStorage.getItem('inventoryAppUser') || '{}');
-  const email = savedUser.email || '';
-
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({
-        mode,
-        name,
-        propertyIds: ids,
-        date: document.getElementById('date').value,
-        email  // 👈 send email
-      })
-    });
-    toast(`Submitted ${ids.length} item(s)`);
-    setTimeout(goHome, 600);
-  } catch (e) {
-    toast('Submit failed');
-  }
+function maybeAutogrow(input){
+  // noop placeholder; could auto-resize if needed
 }
 
-
-// ================== SCANNER ==================
-async function openScanner(targetId=null, el=null) {
-  if (!window.ZXingBrowser) return toast('Scanner not ready');
-  const { BrowserMultiFormatReader, hints } = window.ZXingBrowser;
-  codeReader = new BrowserMultiFormatReader(hints);
-  currentInputEl = el || (targetId ? document.getElementById(targetId) : null);
-  document.getElementById('scannerModal').style.display = 'flex';
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
-    });
-    const video = document.getElementById('video');
-    video.srcObject = stream;
-    await video.play();
-
-    codeReader.decodeFromVideoDevice(null, video, (result) => {
-      if (result) {
-        if (currentInputEl) currentInputEl.value = result.getText();
-        closeScanner();
-        toast('Scanned!');
-        if (!currentInputEl) addPropertyRow(result.getText());
-      }
-    });
-  } catch(e) {
-    toast('Camera error: ' + e.message);
-    closeScanner();
-  }
+function openScannerForSibling(btn){
+  const input = btn.parentElement.querySelector('input');
+  input && openScanner(null, input);
 }
 
-function closeScanner() {
-  document.getElementById('scannerModal').style.display = 'none';
-  if (codeReader) codeReader.reset();
-  codeReader = null;
+function removeRow(btn){
+  const wrap = document.getElementById('props');
+  if (wrap.children.length <= 1) { toast('Keep at least one line'); return; }
+  const row = btn.closest('.prop-row');
+  row && wrap.removeChild(row);
+   updateRemoveButtons(); 
 }
 
-function stopScanner() { closeScanner(); }
-
-async function toggleTorch() {
-  // simple torch toggle (works on most phones)
-  const stream = document.getElementById('video').srcObject;
-  const track = stream?.getVideoTracks()[0];
-  if (track?.getCapabilities()?.torch) {
+async function toggleTorch(){
+  try{
+    const stream = document.getElementById('video').srcObject;
+    const track = stream?.getVideoTracks?.()[0];
+    if (!track) return;
+    const caps = track.getCapabilities?.();
+    if (!caps || !caps.torch) { toast('Torch not supported'); return; }
     torchOn = !torchOn;
     await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+  }catch(e){ toast('Torch failed'); }
+}
+
+function stopScanner(){
+  try{
+    codeReader && codeReader.reset();
+  }catch{} finally{
+    codeReader = null;
+    torchOn = false;
   }
 }
+  
+function showApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const displayName = user.name || user.email.split('@')[0];
+  document.getElementById('userName').textContent = displayName;
+}
+  
+function closeScanner(){
+  document.getElementById('scannerModal').style.display='none';
+  stopScanner();
+}
+
+/** ====== SUBMIT ====== */
+async function submitForm(){
+  const date = document.getElementById('date').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const allInputs = Array.from(
+    document.querySelectorAll('#props .prop-row input')
+  );
+  const ids = allInputs.map(i => i.value.trim()).filter(Boolean);
+  // Validate Name
+  if (!name.trim()) {
+    toast('Name cannot be empty');
+    return;
+  }
+  if (ids.length === 0) {
+    toast('Enter at least one Property ID');
+    return;
+  }
+   
+ const payload = { mode, date, name, propertyIds: ids };
+
+ // Must have at least one non-empty property ID
+ if (ids.length === 0) {
+   toast('Enter at least one Property ID');
+   return;
+ }
+  // NOTE: Apps Script often redirects (302) and lacks CORS headers.
+  // Use no-cors fire-and-forget; we assume success if fetch doesn't throw.
+  try{
+    await fetch(SCRIPT_URL, {
+      method:'POST',
+      mode:'no-cors', // avoids CORS preflight; can't read response
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(payload),
+    });
+    toast(`Submitted ${ids.length} item(s)`);
+    // Return to home after a short delay
+    setTimeout(()=> goHome(), 400);
+  }catch(e){
+    toast('Submit failed: ' + e);
+  }
+}
+
+/** ====== BOOT ====== */
+if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
+  document.body.innerHTML = '<div class="shell"><div class="card"><h2>HTTPS required</h2><p>Camera access needs HTTPS. Please host this page on HTTPS (GitHub Pages / Netlify) or run locally at http://localhost.</p></div></div>';
+}
+/** ====== SCANNER ====== */
+async function openScanner(targetId=null, directInputEl=null) {
+  if (!window.ZXingBrowser) { alert("ZXingBrowser not loaded yet"); return; }
+  const { BrowserMultiFormatReader, BrowserCodeReader, hints } = window.ZXingBrowser;
+  codeReader = new BrowserMultiFormatReader(hints);
+  currentInputEl = directInputEl || (targetId ? document.getElementById(targetId) : null);
+
+  document.getElementById('scannerModal').style.display='flex';
+
+  const video = document.getElementById('video');
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('autoplay', 'true');
+  video.muted = true;
+
+  const cb = (result, err) => {
+    if (!result) return;
+    const text = result.getText();
+    if (currentInputEl) {
+      currentInputEl.value = text;
+      currentInputEl.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+    currentInputEl = null;
+    closeScanner();
+    toast('Scanned');
+  };
+
+  try {
+    // 1) Ask browser for a decent resolution from the back camera
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+    video.srcObject = stream;
+    await new Promise(r => {
+      video.onloadedmetadata = () => {
+        video.play().catch(()=>{});
+        r();
+      };
+    });
+
+    // 2) Let ZXing decode continuously from this video element
+    await codeReader.decodeFromVideoElement(video, cb);
+  } catch (e) {
+    toast(`Camera error: ${e.name || 'Error'} — ${e.message || e}`);
+  }
+} 
 </script>
 </body>
 </html>
