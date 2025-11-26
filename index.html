@@ -8,36 +8,45 @@
     :root { --primary:#4f46e5; --card:#ffffff; }
     body { margin:0; font:16px/1.4 system-ui,-apple-system,sans-serif; background:#f5f7fb; }
     .shell { max-width:680px; margin:0 auto; padding:20px; }
-    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:20px; }
-    h1,h2{margin:0 0 8px}
-    .muted{color:#6b7280}
-    .row{display:flex; gap:12px; flex-wrap:wrap}
-    .btn{appearance:none; border:0; border-radius:12px; padding:12px 16px; font-weight:600; cursor:pointer;}
+    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:32px 24px; text-align:center; }
+    h1,h2{margin:0 0 12px; font-weight:600;}
+    .muted{color:#6b7280; margin:8px 0 24px;}
+    .btn{appearance:none; border:0; border-radius:12px; padding:12px 20px; font-weight:600; cursor:pointer;}
     .btn.primary{background:var(--primary); color:#fff;}
     .btn.ghost{background:#eef2ff; color:#3730a3;}
     .btn.full{width:100%}
-    .flex-between{display:flex; justify-content:space-between; align-items:center;}
-    .toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 20px; border-radius:999px; font-size:14px; display:none; z-index:9999}
+    .flex-between{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
+    .toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 24px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .3s; z-index:9999;}
+    .toast.show{opacity:1;}
+    .row{display:flex; gap:12px; flex-wrap:wrap;}
+    .field{position:relative; margin-bottom:12px;}
+    .icon-btn{background:none; border:none; font-size:20px; cursor:pointer; padding:4px;}
+    .prop-row{display:flex; align-items:center; gap:8px;}
+    .remove{color:#ef4444; font-size:20px; cursor:pointer;}
+    .modal{display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); align-items:center; justify-content:center; z-index:1000;}
+    .sheet{background:#fff; border-radius:16px; overflow:hidden; width:90%; max-width:400px;}
+    .bar{padding:12px; background:#111; color:#fff; display:flex; justify-content:space-between; align-items:center;}
   </style>
 </head>
 <body>
 
-<!-- =============== LOGIN SCREEN (centered) =============== -->
+<!-- =============== LOGIN SCREEN =============== -->
 <div id="loginScreen">
   <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
-    <div class="card" style="text-align:center; max-width:400px; width:100%;">
+    <div class="card">
       <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Please sign in with your Google account</p>
-      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" style="margin:30px auto; justify-content:center; display:flex;"></div>
-      <p style="font-size:13px; color:#6b7280;">Access is controlled by the shared log spreadsheet</p>
+      <p class="muted">Sign in with your Google account to continue</p>
+      <div class="g_id_signin" style="justify-content:center; display:flex; margin:30px 0;"></div>
+      <p style="font-size:13px; color:#6b7280;">Access is controlled by edit rights on the shared spreadsheet</p>
     </div>
   </div>
 </div>
 
-<div id="blockedScreen" style="display:none; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; text-align:center; color:#dc2626;">
-  <div class="card">
-    <h2>Not authorized</h2>
-    <p>Your account does not have edit access to the log spreadsheet.<br>Contact the admin to be added to the authorized Google Group.</p>
+<!-- =============== BLOCKED SCREEN =============== -->
+<div id="blockedScreen" style="display:none; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div class="card" style="color:#dc2626;">
+    <h2>Not Authorized</h2>
+    <p>Your account does not have edit access to the log spreadsheet.<br>Contact the administrator to be added to the authorized Google Group.</p>
     <button class="btn ghost" onclick="location.reload()">Try again</button>
   </div>
 </div>
@@ -45,341 +54,114 @@
 <!-- =============== MAIN APP =============== -->
 <div id="app" style="display:none;">
   <div class="shell">
-    <script type="module">
-      import {
+
+    <!-- ZXing Barcode Scanner (module) -->
+        <script type="module">
+          import {
+            BrowserMultiFormatReader,
+            BrowserCodeReader
+          } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+        
+          import {
+            DecodeHintType,
+            BarcodeFormat
+          } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.QR_CODE,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      // ---- expose global ----
+      window.ZXingBrowser = {
         BrowserMultiFormatReader,
-        BrowserCodeReader
-      } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
-    
-      import {
+        BrowserCodeReader,
         DecodeHintType,
-        BarcodeFormat
-      } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
+        BarcodeFormat,
+        hints
+      };
 
-  const hints = new Map();
-  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-    BarcodeFormat.QR_CODE,
-    BarcodeFormat.CODE_128,
-    BarcodeFormat.CODE_39,
-    BarcodeFormat.EAN_13,
-    BarcodeFormat.EAN_8
-  ]);
-  hints.set(DecodeHintType.TRY_HARDER, true);
-
-  // ---- expose global ----
-  window.ZXingBrowser = {
-    BrowserMultiFormatReader,
-    BrowserCodeReader,
-    DecodeHintType,
-    BarcodeFormat,
-    hints
-  };
-
-  console.log("ZXing 0.1.5 + hints loaded");
-</script>
-    
-  <div class="shell">
+      console.log("ZXing 0.1.5 + hints loaded");
+    </script>
+    <!-- Header -->
     <div class="card" id="home">
-      <!-- Header with title left + logout right -->
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+      <div class="flex-between">
         <div>
           <h1>Borrow / Return / Inventory</h1>
-          <p class="muted">Hello, <span id="userName" style="font-weight:600;"></span>!</p>
-          <p class="muted">Choose an action</p>
+          <p class="muted">Hello, <strong id="userName"></strong>!</p>
         </div>
-    
-        <button class="btn ghost" onclick="logout()">
-          Log out
-        </button>
+        <button class="btn ghost" onclick="logout()">Log out</button>
       </div>
-    
-      <!-- Action buttons -->
-      <div class="row" style="margin-top:12px; gap:12px;">
+
+      <p class="muted">Choose an action</p>
+      <div class="row" style="margin-top:20px;">
         <button class="btn primary full" onclick="openForm('Borrow')">Borrow</button>
         <button class="btn ghost full" onclick="openForm('Return')">Return</button>
         <button class="btn ghost full" onclick="openForm('Inventory')">Inventory</button>
       </div>
     </div>
-    
-    <div class="card" id="formCard" style="display:none; margin-top:16px">
-      <h2 id="formTitle">Form</h2>
-      <div class="grid" style="margin-top:12px">
+
+    <!-- Form -->
+    <div class="card" id="formCard" style="display:none; margin-top:16px;">
+      <h2 id="formTitle"></h2>
+      <div style="margin-top:16px;">
         <div><label>Date</label><input id="date" type="text" readonly></div>
-        <div><label>Name</label></div>
-        <div class="field">
-          <input id="name" type="text" placeholder="Scan or type a name">
-           <button class="icon-btn" aria-label="Scan name" onclick="openScanner('name')">📷</button>
+        <div><label>Name</label>
+          <div class="field">
+            <input id="name" type="text" placeholder="Tap or scan name">
+            <button class="icon-btn" onclick="openScanner('name')">📷</button>
+          </div>
         </div>
-        <div>
-          <div class="row" style="align-items:center; justify-content:space-between">
-            <label style="margin:0">Property ID(s)</label>
+        <div style="margin-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>Property ID(s)</label>
             <button class="btn ghost" onclick="addPropertyRow()">+ Add line</button>
           </div>
-          <div id="props" class="grid" style="margin-top:8px"></div>
+          <div id="props" style="margin-top:8px;"></div>
         </div>
-        <div class="divider"></div>
-        <div class="row">
+        <div style="margin-top:24px; display:flex; gap:12px;">
           <button class="btn full" onclick="goHome()">Back</button>
-          <button class="btn primary full" onclick="submitForm()">Confirm / Submit</button>
+          <button class="btn primary full" onclick="submitForm()">Submit</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Scanner modal -->
-  <div class="modal" id="scannerModal" role="dialog">
-      <div class="sheet">
-        <video id="video" autoplay playsinline muted></video>
-        <div class="bar">
-          <div>Point camera at a QR code…</div>
-          <div>
-            <button class="btn" onclick="toggleTorch()">Torch</button>
-            <button class="btn" onclick="closeScanner()">Close</button>
-          </div>
+  <!-- Scanner Modal -->
+  <div class="modal" id="scannerModal">
+    <div class="sheet">
+      <video id="video" width="100%" autoplay playsinline muted></video>
+      <div class="bar">
+        <div>Point camera at code…</div>
+        <div>
+          <button class="btn" onclick="toggleTorch()">Torch</button>
+          <button class="btn" onclick="closeScanner()">Close</button>
         </div>
       </div>
     </div>
+  </div>
 
   <div class="toast" id="toast"></div>
-
-<script>
-/** ====== CONFIG ====== */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoZUVTfbtIAgnyjNm2feyn7rZtIRwxzG9dwUwBvVSlJIet0dVv9wIFTsRRu9nL1pO1dA/exec'; 
-
-/** ====== STATE ====== */
-let mode = 'Borrow';
-let currentScanTargetId = null;
-let codeReader = null;
-let currentDeviceId = null;
-let torchOn = false;
-let currentInputEl = null;
-/** ====== UTILS ====== */
-function fmtDate(d=new Date()){
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function toast(msg, ms=2000){
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.display='block';
-  clearTimeout(el._t); el._t = setTimeout(()=> el.style.display='none', ms);
-}
-function goHome(){
-  stopScanner();
-  document.getElementById('formCard').style.display='none';
-  document.getElementById('home').style.display='block';
-}
-
-/** ====== HOME -> FORM ====== */
-function openForm(selected){
-  mode = selected;
-  document.getElementById('home').style.display='none';
-  document.getElementById('formCard').style.display='block';
-  document.getElementById('formTitle').textContent = `${mode} Form`;
-  document.getElementById('date').value = fmtDate();
-  document.getElementById('name').value = '';
-  const wrap = document.getElementById('props');
-  wrap.innerHTML = '';
-  addPropertyRow(); // start with one
-}
-
-/** ====== PROPERTY ROWS ====== */
-function updateRemoveButtons() {
-  const rows = document.querySelectorAll('#props .prop-row');
-  rows.forEach((row) => {
-    const btn = row.querySelector('.remove');
-    if (!btn) return;
-    btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
-  });
-}
-
-function addPropertyRow(value=''){
-  const wrap = document.getElementById('props');
-  const idx = wrap.children.length;
-  const row = document.createElement('div');
-  row.className = 'prop-row';
-  row.innerHTML = `
-    <div class="field col">
-      <input type="text" placeholder="Property ID" value="${value.replaceAll('"','&quot;')}" oninput="maybeAutogrow(this)">
-      <button class="icon-btn" aria-label="Scan Property" onclick="openScanner(null, this.previousElementSibling)">📷</button>
-    </div>
-    <button class="remove" title="Remove" onclick="removeRow(this)">✕</button>
-  `;
-  wrap.appendChild(row);
-  maybeAutogrow(row.querySelector('input'));
-  // Auto-add a new empty line when last line gets non-empty
-  const input = row.querySelector('input');
-  input.addEventListener('input', ()=>{
-    const isLast = row === wrap.lastElementChild;
-    if (isLast && input.value.trim()!=='') addPropertyRow();
-     updateRemoveButtons(); 
-  }, {once:false});
-   updateRemoveButtons(); 
-}
-
-function maybeAutogrow(input){
-  // noop placeholder; could auto-resize if needed
-}
-
-function openScannerForSibling(btn){
-  const input = btn.parentElement.querySelector('input');
-  input && openScanner(null, input);
-}
-
-function removeRow(btn){
-  const wrap = document.getElementById('props');
-  if (wrap.children.length <= 1) { toast('Keep at least one line'); return; }
-  const row = btn.closest('.prop-row');
-  row && wrap.removeChild(row);
-   updateRemoveButtons(); 
-}
-
-async function toggleTorch(){
-  try{
-    const stream = document.getElementById('video').srcObject;
-    const track = stream?.getVideoTracks?.()[0];
-    if (!track) return;
-    const caps = track.getCapabilities?.();
-    if (!caps || !caps.torch) { toast('Torch not supported'); return; }
-    torchOn = !torchOn;
-    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-  }catch(e){ toast('Torch failed'); }
-}
-
-function stopScanner(){
-  try{
-    codeReader && codeReader.reset();
-  }catch{} finally{
-    codeReader = null;
-    torchOn = false;
-  }
-}
-  
-function showApp(user) {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const displayName = user.name || user.email.split('@')[0];
-  document.getElementById('userName').textContent = displayName;
-}
-  
-function closeScanner(){
-  document.getElementById('scannerModal').style.display='none';
-  stopScanner();
-}
-
-/** ====== SUBMIT ====== */
-async function submitForm(){
-  const date = document.getElementById('date').value.trim();
-  const name = document.getElementById('name').value.trim();
-  const allInputs = Array.from(
-    document.querySelectorAll('#props .prop-row input')
-  );
-  const ids = allInputs.map(i => i.value.trim()).filter(Boolean);
-  // Validate Name
-  if (!name.trim()) {
-    toast('Name cannot be empty');
-    return;
-  }
-  if (ids.length === 0) {
-    toast('Enter at least one Property ID');
-    return;
-  }
-   
- const payload = { mode, date, name, propertyIds: ids };
-
- // Must have at least one non-empty property ID
- if (ids.length === 0) {
-   toast('Enter at least one Property ID');
-   return;
- }
-  // NOTE: Apps Script often redirects (302) and lacks CORS headers.
-  // Use no-cors fire-and-forget; we assume success if fetch doesn't throw.
-  try{
-    await fetch(SCRIPT_URL, {
-      method:'POST',
-      mode:'no-cors', // avoids CORS preflight; can't read response
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(payload),
-    });
-    toast(`Submitted ${ids.length} item(s)`);
-    // Return to home after a short delay
-    setTimeout(()=> goHome(), 400);
-  }catch(e){
-    toast('Submit failed: ' + e);
-  }
-}
-
-/** ====== BOOT ====== */
-if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
-  document.body.innerHTML = '<div class="shell"><div class="card"><h2>HTTPS required</h2><p>Camera access needs HTTPS. Please host this page on HTTPS (GitHub Pages / Netlify) or run locally at http://localhost.</p></div></div>';
-}
-/** ====== SCANNER ====== */
-async function openScanner(targetId=null, directInputEl=null) {
-  if (!window.ZXingBrowser) { alert("ZXingBrowser not loaded yet"); return; }
-  const { BrowserMultiFormatReader, BrowserCodeReader, hints } = window.ZXingBrowser;
-  codeReader = new BrowserMultiFormatReader(hints);
-  currentInputEl = directInputEl || (targetId ? document.getElementById(targetId) : null);
-
-  document.getElementById('scannerModal').style.display='flex';
-
-  const video = document.getElementById('video');
-  video.setAttribute('playsinline', 'true');
-  video.setAttribute('autoplay', 'true');
-  video.muted = true;
-
-  const cb = (result, err) => {
-    if (!result) return;
-    const text = result.getText();
-    if (currentInputEl) {
-      currentInputEl.value = text;
-      currentInputEl.dispatchEvent(new Event('input', {bubbles:true}));
-    }
-    currentInputEl = null;
-    closeScanner();
-    toast('Scanned');
-  };
-
-  try {
-    // 1) Ask browser for a decent resolution from the back camera
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
-    video.srcObject = stream;
-    await new Promise(r => {
-      video.onloadedmetadata = () => {
-        video.play().catch(()=>{});
-        r();
-      };
-    });
-
-    // 2) Let ZXing decode continuously from this video element
-    await codeReader.decodeFromVideoElement(video, cb);
-  } catch (e) {
-    toast(`Camera error: ${e.name || 'Error'} — ${e.message || e}`);
-  }
-} 
-</script>
-
-  </div>
 </div>
 
-<!-- Google Sign-In -->
+<!-- Google Sign-In SDK -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
-// =============== CONFIG (only these two lines!) ===============
-const AUTH_CHECK_URL = 'https://script.google.com/macros/s/AKfycbzoZUVTfbtIAgnyjNm2feyn7rZtIRwxzG9dwUwBvVSlJIet0dVv9wIFTsRRu9nL1pO1dA/exec';
-// (log Sheet is 1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE – no need to reference it here)
-// ==============================================================
+// ================== CONFIG ==================
+const AUTH_URL = 'https://script.google.com/macros/s/AKfycbzoZUVTfbtIAgnyjNm2feyn7rZtIRwxzG9dwUwBvVSlJIet0dVv9wIFTsRRu9nL1pO1dA/exec';
+const SCRIPT_URL = AUTH_URL; // same URL for login + submit
 
+// ================== AUTH ==================
 function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const name = user.name || user.email.split('@')[0];
-  document.getElementById('userName').textContent = name;
+  document.getElementById('userName').textContent = user.name || user.email.split('@')[0];
 }
 
 function showBlocked() {
@@ -392,7 +174,6 @@ function logout() {
   location.reload();
 }
 
-// Check if already authorized (remember forever)
 window.addEventListener('load', () => {
   const saved = localStorage.getItem('inventoryAppUser');
   if (saved) {
@@ -404,19 +185,23 @@ window.addEventListener('load', () => {
     client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
     callback: handleCredentialResponse
   });
-  google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { theme:"outline", size:"large" });
+  google.accounts.id.renderButton(document.querySelector('.g_id_signin'), {
+    theme: 'outline',
+    size: 'large',
+    text: 'signin_with',
+    width: 300
+  });
 });
 
 async function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
 
   try {
-    const resp = await fetch(AUTH_CHECK_URL, {
+    const resp = await fetch(AUTH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'login-test' })
     });
-
     const result = await resp.json();
 
     if (result.status === 'authorized') {
@@ -428,6 +213,119 @@ async function handleCredentialResponse(response) {
   } catch (e) {
     console.error(e);
     showBlocked();
+  }
+}
+
+// ================== APP LOGIC (your existing code – cleaned) ==================
+let mode = '', codeReader = null, currentInputEl = null, torchOn = false;
+
+function fmtDate(d = new Date()) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toast(msg, ms=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function goHome() {
+  stopScanner();
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('home').style.display = 'block';
+}
+
+function openForm(m) {
+  mode = m;
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('formTitle').textContent = mode + ' Form';
+  document.getElementById('date').value = fmtDate();
+  document.getElementById('name').value = '';
+  document.getElementById('props').innerHTML = '';
+  addPropertyRow();
+}
+
+function addPropertyRow(val='') {
+  const wrap = document.getElementById('props');
+  const row = document.createElement('div');
+  row.className = 'prop-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Property ID" value="${val}" style="flex:1;">
+    <button class="icon-btn" onclick="openScanner(null, this.previousElementSibling)">📷</button>
+    <button class="remove" onclick="this.closest('.prop-row').remove()">✕</button>
+  `;
+  wrap.appendChild(row);
+  if (wrap.children.length === 1) addPropertyRow(); // always have empty line
+}
+
+async function submitForm() {
+  const name = document.getElementById('name').value.trim();
+  const ids = Array.from(document.querySelectorAll('#props input')).map(i => i.value.trim()).filter(Boolean);
+  if (!name) return toast('Name required');
+  if (!ids.length) return toast('At least one Property ID required');
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ mode, name, propertyIds: ids, date: document.getElementById('date').value })
+    });
+    toast(`Submitted ${ids.length} item(s)`);
+    setTimeout(goHome, 600);
+  } catch(e) {
+    toast('Submit failed');
+  }
+}
+
+// ================== SCANNER ==================
+async function openScanner(targetId=null, el=null) {
+  if (!window.ZXingBrowser) return toast('Scanner not ready');
+  const { BrowserMultiFormatReader, hints } = window.ZXingBrowser;
+  codeReader = new BrowserMultiFormatReader(hints);
+  currentInputEl = el || (targetId ? document.getElementById(targetId) : null);
+  document.getElementById('scannerModal').style.display = 'flex';
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await video.play();
+
+    codeReader.decodeFromVideoDevice(null, video, (result) => {
+      if (result) {
+        if (currentInputEl) currentInputEl.value = result.getText();
+        closeScanner();
+        toast('Scanned!');
+        if (!currentInputEl) addPropertyRow(result.getText());
+      }
+    });
+  } catch(e) {
+    toast('Camera error: ' + e.message);
+    closeScanner();
+  }
+}
+
+function closeScanner() {
+  document.getElementById('scannerModal').style.display = 'none';
+  if (codeReader) codeReader.reset();
+  codeReader = null;
+}
+
+function stopScanner() { closeScanner(); }
+
+async function toggleTorch() {
+  // simple torch toggle (works on most phones)
+  const stream = document.getElementById('video').srcObject;
+  const track = stream?.getVideoTracks()[0];
+  if (track?.getCapabilities()?.torch) {
+    torchOn = !torchOn;
+    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
   }
 }
 </script>
