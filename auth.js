@@ -30,7 +30,17 @@ window.addEventListener('load', () => {
   
   // otherwise show the normal Google button
   google.accounts.id.initialize({ ... });
-  google.accounts.id.renderButton(...);
+  google.accounts.id.renderButton(
+  document.getElementById("buttonDiv"),
+  {
+    theme: "outline",
+    size: "large",
+    text: "signin_with",
+    shape: "rectangular",
+    width: 300,
+    logo_alignment: "left"
+  }
+);
 });
 
 function showLoggedInScreen(user) {
