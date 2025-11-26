@@ -69,7 +69,6 @@
     <div class="card" style="text-align:center; max-width:400px; width:100%;">
       <h1>Borrow / Return / Inventory</h1>
       <p class="muted">Please sign in with your Google account</p>
-      <div id="buttonDiv" style="margin:40px auto; width:300px; height:60px;"></div>
       <div style="margin:30px 0;">
       </div>
 
@@ -488,17 +487,6 @@ async function handleCredentialResponse(response) {
     console.error('Auth error:', e);
     alert('Error checking authorization. Check Sheet sharing or internet.');
   }
-  google.accounts.id.renderButton(
-  document.getElementById("buttonDiv"),
-  {
-    theme: "outline",
-    size: "large",
-    text: "signin_with",
-    shape: "rectangular",
-    width: 300,
-    logo_alignment: "left"
-  }
-);
 }
 </script>
 </body>
