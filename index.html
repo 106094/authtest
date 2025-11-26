@@ -210,8 +210,9 @@
 <script src="https://apis.google.com/js/api.js"></script>
 <script>
 // ================== CONFIG ==================          
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxzwLaLKmP0ixib-GxiaKOvT8l_-0ZeIeJXOWyhktqEqaROAc_QeVKjTWclgFL-gWweA/exec';   
-const SHEET_ID = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE';  // ← your spreadsheet ID
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxzwLaLKmP0ixib-GxiaKOvT8l_-0ZeIeJXOWyhktqEqaROAc_QeVKjTWclgFL-gWweA/exec';
+const SHEET_ID   = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE';
+
 let tokenClient;
 let currentUser = null;
 
@@ -234,38 +235,42 @@ function logout() {
   location.reload();
 }
 
-// Step 1: Runs when Google Identity Services loads
 function handleClientLoad() {
-  const saved = localStorage.getItem('inventoryAppUser');
+  const savedUser  = localStorage.getItem('inventoryAppUser');
   const savedToken = localStorage.getItem('sheetsToken');
 
-  if (saved && savedToken) {
-    showApp(JSON.parse(saved));
+  if (savedUser && savedToken) {
+    showApp(JSON.parse(savedUser));
     return;
   }
 
-  // Render Google Sign-In button
-  google.accounts.id.renderButton(document.getElementById('buttonDiv'), {
-    theme: 'outline', size: 'large', text: 'signin_with'
-  });
+  // use a normal button; no google.accounts.id here
+  const btn = document.getElementById('buttonDiv');
+  btn.textContent = 'Sign in with Google';
+  btn.style.cursor = 'pointer';
 
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
-    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
     callback: async (resp) => {
       if (resp.error || !resp.access_token) {
+        console.error('Token error', resp);
         showBlocked();
         return;
       }
 
-      const payload = JSON.parse(atob(resp.credential.split('.')[1]));
-      const email = payload.email;
-      const name = payload.name || payload.given_name || email.split('@')[0];
-
-      // STEP 1: Try to write login record to access_log
-      const loginRow = [[new Date().toISOString(), email, name, 'login-attempt']];
-
       try {
+        // 1. get user info
+        const userInfoResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${resp.access_token}` }
+        });
+        const userInfo = await userInfoResp.json();
+        const email = userInfo.email;
+        const name  = userInfo.name || (email ? email.split('@')[0] : 'Unknown');
+
+        // 2. try to append login record to access_log
+        const loginRow = [[new Date().toISOString(), email, name, 'login-attempt']];
+
         const logResponse = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/access_log!A1:append?valueInputOption=RAW`,
           {
@@ -279,25 +284,25 @@ function handleClientLoad() {
         );
 
         if (logResponse.ok) {
-          // SUCCESS → user is authorized!
-          localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
+          // authorized
+          const user = { email, name };
+          localStorage.setItem('inventoryAppUser', JSON.stringify(user));
           localStorage.setItem('sheetsToken', resp.access_token);
-          showApp(payload);
+          showApp(user);
         } else {
-          // FAILED → not authorized
-          const err = await logResponse.json();
-          console.log('Access denied:', err);
+          // not authorized (or other Sheets error)
+          const err = await logResponse.json().catch(() => ({}));
+          console.log('Access denied / Sheets error:', err);
           showBlocked();
         }
       } catch (e) {
-        console.error('Login log failed:', e);
+        console.error('Login flow failed:', e);
         showBlocked();
       }
     },
   });
 
-  // Trigger login when user clicks the button
-  document.getElementById('buttonDiv').onclick = () => tokenClient.requestAccessToken();
+  btn.onclick = () => tokenClient.requestAccessToken();
 }
 
 /** ====== STATE ====== */
