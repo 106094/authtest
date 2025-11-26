@@ -79,13 +79,7 @@
       <p class="muted">Please sign in with your Google account</p>
 
       <div style="margin:30px 0;">
-        <div class="buttonDiv"
-             data-type="standard"
-             data-size="large"
-             data-theme="outline"
-             data-text="signin_with"
-             data-shape="rectangular">
-        </div>
+        <button id="loginBtn">Sign in with Google</button>
       </div>
 
       <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
@@ -214,7 +208,11 @@ const SHEET_ID   = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE';
 
 let tokenClient;
 let currentUser = null;
-
+  
+function handleClientLoad() {
+  document.getElementById('loginBtn').onclick = () => tokenClient.requestAccessToken();
+}
+  
 function showApp(user) {
   currentUser = user;
   document.getElementById('loginScreen').style.display = 'none';
