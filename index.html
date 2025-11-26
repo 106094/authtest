@@ -71,14 +71,22 @@
 
 <!-- =============== LOGIN SCREEN =============== -->
 <div id="loginScreen">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
-    <div class="card" style="text-align:center;max-width:420px;">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="text-align:center; max-width:400px; width:100%;">
       <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Sign in with your Google account</p>
-      <div id="buttonDiv" style="margin:40px auto; width:300px; height:60px;"></div>
-      <p style="font-size:13px;color:#6b7280">
-        Access requires edit permission on the shared log spreadsheet
-      </p>
+      <p class="muted">Please sign in with your Google account</p>
+
+      <div style="margin:30px 0;">
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="outline"
+             data-text="signin_with"
+             data-shape="rectangular">
+        </div>
+      </div>
+
+      <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
     </div>
   </div>
 </div>
