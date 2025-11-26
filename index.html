@@ -70,19 +70,17 @@
 <body>
 
 <!-- =============== LOGIN SCREEN =============== -->
-<div id="loginScreen">
-  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
-    <div class="card">
+  <div id="loginScreen">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="text-align:center;max-width:420px;">
       <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Sign in with your Google account to continue</p>
-      <div id="googleSignInButton" style="margin:30px auto; height:60px; width:300px;"></div>
-      <p style="font-size:13px; color:#6b7280; margin-top:20px;">
-        Access is controlled by edit rights on the shared spreadsheet
-      </p>
+      <p class="muted">Sign in with your Google account</p>
+      <div id="buttonDiv" style="margin:40px auto;"></div>
+      <p style="font-size:13px;color:#6b7280">Access requires edit permission on the shared log spreadsheet</p>
     </div>
   </div>
 </div>
-
+  
 <!-- =============== BLOCKED SCREEN =============== -->
 <div id="blockedScreen"
      style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px;">
@@ -198,115 +196,98 @@
 </div>
 
 <!-- Google Sign-In SDK -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
+<script src="https://accounts.google.com/gsi/client" async defer onload="handleClientLoad()"></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script>
-// ================== CONFIG ==================
-const AUTH_URL = 'https://script.google.com/macros/s/AKfycbxxzwLaLKmP0ixib-GxiaKOvT8l_-0ZeIeJXOWyhktqEqaROAc_QeVKjTWclgFL-gWweA/exec';            
-const SCRIPT_URL = AUTH_URL; // same URL for login + submit
+// ================== CONFIG ==================          
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxzwLaLKmP0ixib-GxiaKOvT8l_-0ZeIeJXOWyhktqEqaROAc_QeVKjTWclgFL-gWweA/exec';   
+const SHEET_ID = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE';  // ← your spreadsheet ID
+let tokenClient;
+let currentUser = null;
 
 function showApp(user) {
+  currentUser = user;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('userName').textContent = user.name || user.email.split('@')[0];
 }
- function showBlocked() {
+
+function showBlocked() {
   document.getElementById('loginScreen').style.display = 'none';
-  const blocked = document.getElementById('blockedScreen');
-  blocked.style.display = 'flex';  // make it flex WHEN needed
+  document.getElementById('blockedScreen').style.display = 'flex';
 }
+
 function logout() {
-  localStorage.removeItem('inventoryAppUser');
+  const token = localStorage.getItem('sheetsToken');
+  if (token) google.accounts.oauth2.revoke(token);
+  localStorage.clear();
   location.reload();
 }
 
-// Wait for Google SDK to load → then render button
-window.onload = function () {
-  // 1. Check if already logged in
+// Step 1: Runs when Google Identity Services loads
+function handleClientLoad() {
   const saved = localStorage.getItem('inventoryAppUser');
-  if (saved) {
+  const savedToken = localStorage.getItem('sheetsToken');
+
+  if (saved && savedToken) {
     showApp(JSON.parse(saved));
     return;
   }
 
-  // 2. Wait a tiny bit extra to be 100% sure the SDK is ready
-  setTimeout(() => {
-    if (!window.google || !google.accounts) {
-      document.getElementById('loginScreen').innerHTML += '<p style="color:red;">Google Sign-In failed to load. Reload page.</p>';
-      return;
-    }
+  // Render Google Sign-In button
+  google.accounts.id.renderButton(document.getElementById('buttonDiv'), {
+    theme: 'outline', size: 'large', text: 'signin_with'
+  });
 
-    google.accounts.id.initialize({
-      client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
-      callback: handleCredentialResponse
-    });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    callback: async (resp) => {
+      if (resp.error || !resp.access_token) {
+        showBlocked();
+        return;
+      }
 
-    // This container MUST exist in HTML
-    const buttonDiv = document.getElementById('googleSignInButton');
-    if (!buttonDiv) {
-      console.error("Missing #googleSignInButton div!");
-      return;
-    }
+      const payload = JSON.parse(atob(resp.credential.split('.')[1]));
+      const email = payload.email;
+      const name = payload.name || payload.given_name || email.split('@')[0];
 
-    google.accounts.id.renderButton(buttonDiv, {
-      theme: "outline",
-      size: "large",
-      text: "signin_with",
-      width: 300,
-      logo_alignment: "left"
-    });
+      // STEP 1: Try to write login record to access_log
+      const loginRow = [[new Date().toISOString(), email, name, 'login-attempt']];
 
-    // Optional: show the button div (in case it was hidden)
-    buttonDiv.style.display = 'block';
-  }, 500);
-};
+      try {
+        const logResponse = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/access_log!A1:append?valueInputOption=RAW`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${resp.access_token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ values: loginRow })
+          }
+        );
 
-async function handleCredentialResponse(response) {
-  //const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  const base64Url = response.credential.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join('')
-  );
-  const payload = JSON.parse(jsonPayload);
+        if (logResponse.ok) {
+          // SUCCESS → user is authorized!
+          localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
+          localStorage.setItem('sheetsToken', resp.access_token);
+          showApp(payload);
+        } else {
+          // FAILED → not authorized
+          const err = await logResponse.json();
+          console.log('Access denied:', err);
+          showBlocked();
+        }
+      } catch (e) {
+        console.error('Login log failed:', e);
+        showBlocked();
+      }
+    },
+  });
 
-  try {
-    const resp = await fetch(AUTH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'login-test',
-        email: payload.email   // 👈 send email
-      })
-    });
-
-    const text = await resp.text();
-    console.log('login-test raw response:', text);
-
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch (err) {
-      console.error('JSON parse failed', err);
-      showBlocked();   // any non-JSON → treat as blocked
-      return;
-    }
-
-    if (result.status === 'authorized') {
-      localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
-      showApp(payload);
-    } else {
-      console.warn('Backend says NOT authorized:', result);
-      showBlocked();
-    }
-
-  } catch (e) {
-    console.error('login-test fetch failed', e);
-    showBlocked();
-  }
+  // Trigger login when user clicks the button
+  document.getElementById('buttonDiv').onclick = () => tokenClient.requestAccessToken();
 }
 
 /** ====== STATE ====== */
