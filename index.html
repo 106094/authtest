@@ -159,41 +159,60 @@
 const AUTH_URL = 'https://script.google.com/macros/s/AKfycbzoZUVTfbtIAgnyjNm2feyn7rZtIRwxzG9dwUwBvVSlJIet0dVv9wIFTsRRu9nL1pO1dA/exec';
 const SCRIPT_URL = AUTH_URL; // same URL for login + submit
 
-// ================== AUTH ==================
 function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('userName').textContent = user.name || user.email.split('@')[0];
 }
-
 function showBlocked() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('blockedScreen').style.display = 'flex';
 }
-
 function logout() {
   localStorage.removeItem('inventoryAppUser');
   location.reload();
 }
 
-window.addEventListener('load', () => {
+// Wait for Google SDK to load → then render button
+window.onload = function () {
+  // 1. Check if already logged in
   const saved = localStorage.getItem('inventoryAppUser');
   if (saved) {
     showApp(JSON.parse(saved));
     return;
   }
 
-  google.accounts.id.initialize({
-    client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
-    callback: handleCredentialResponse
-  });
-  google.accounts.id.renderButton(document.querySelector('googleSignInButton'), {
-    theme: 'outline',
-    size: 'large',
-    text: 'signin_with',
-    width: 300
-  });
-});
+  // 2. Wait a tiny bit extra to be 100% sure the SDK is ready
+  setTimeout(() => {
+    if (!window.google || !google.accounts) {
+      document.getElementById('loginScreen').innerHTML += '<p style="color:red;">Google Sign-In failed to load. Reload page.</p>';
+      return;
+    }
+
+    google.accounts.id.initialize({
+      client_id: '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com',
+      callback: handleCredentialResponse
+    });
+
+    // This container MUST exist in HTML
+    const buttonDiv = document.getElementById('googleSignInButton');
+    if (!buttonDiv) {
+      console.error("Missing #googleSignInButton div!");
+      return;
+    }
+
+    google.accounts.id.renderButton(buttonDiv, {
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+      width: 300,
+      logo_alignment: "left"
+    });
+
+    // Optional: show the button div (in case it was hidden)
+    buttonDiv.style.display = 'block';
+  }, 500);
+};
 
 async function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
