@@ -92,50 +92,53 @@
 </div>
 
 <!-- =============== BLOCKED / NOT AUTHORIZED SCREEN =============== -->
-<div id="blockedScreen" style="display:none; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:#fef2f2;">
-  <div class="card" style="text-align:center; max-width:500px; color:#dc2626;">
-    <h2 style="font-size:28px; margin-bottom:16px;">Access Denied</h2>
-    
-    <p style="font-size:16px; line-height:1.6; margin:20px 0; color:#4b5563;">
-      Your Google account does not have edit permission on the shared log spreadsheet.
-    </p>
+<div id="blockedScreen" style="display:none;">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:#fef2f2;">
+    <div class="card" style="text-align:center; max-width:520px; width:100%; background:#ffffff; border:2px solid #fca5a5; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+      
+      <h2 style="font-size:28px; margin-bottom:16px; color:#dc2626;">Access Denied</h2>
+      
+      <p style="font-size:16px; line-height:1.7; margin:20px 0; color:#4b5563;">
+        Your Google account does not have edit permission on the shared log spreadsheet.
+      </p>
 
-    <div style="background:#fee2e2; padding:16px; border-radius:12px; margin:24px 0; font-size:15px; line-height:1.7; color:#991b1b;">
-      <strong>What you can do:</strong><br><br>
-      
-      1. <strong>Ask to be added:</strong> Send your email to the team so they can grant you access.<br><br>
-      
-      2. <strong>Check the authorized list here →</strong><br>
-      <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit#gid=388466886" 
-         target="_blank" 
-         style="color:#1d4ed8; text-decoration:underline; font-weight:600;">
-         Open Authorized Users Sheet
-      </a><br><br>
-      
-      3. <strong>Verify your access here →</strong><br>
-      <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit#gid=59643720" 
-         target="_blank" 
-         style="color:#1d4ed8; text-decoration:underline; font-weight:600;">
-         Open Main Log Sheet (try editing)
-      </a>
+      <div style="background:#fee2e2; padding:20px; border-radius:12px; margin:24px 0; font-size:15px; line-height:1.8; color:#991b1b; border-left:5px solid #dc2626;">
+        <strong>What you can do:</strong><br><br>
+        
+        1. Ask Team RC to add your email address to the authorized list<br><br>
+        
+        2. <strong>Check if you are already authorized</strong><br>
+        <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit#gid=388466886" 
+           target="_blank" 
+           style="color:#1d4ed8; font-weight:600; text-decoration:underline;">
+           Open Authorized Users List
+        </a><br><br>
+        
+        3. <strong>Test your edit access here</strong><br>
+        <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit#gid=59643720" 
+           target="_blank" 
+           style="color:#1d4ed8; font-weight:600; text-decoration:underline;">
+           Open Main Log Sheet
+        </a>
+      </div>
+
+      <p style="margin:28px 0 12px; color:#4b5563; font-size:15px;">
+        After being added, come back and try again.
+      </p>
+
+      <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:20px;">
+        <button class="btn ghost" onclick="location.reload()" style="padding:12px 24px; font-size:16px;">
+          Try Again
+        </button>
+        <button class="btn primary" onclick="location.reload()" style="padding:12px 28px; font-size:16px;">
+          Refresh & Sign In Again
+        </button>
+      </div>
+
+      <p style="margin-top:36px; font-size:13px; color:#6b7280;">
+        Need help? Contact <strong>Team RC</strong>
+      </p>
     </div>
-
-    <p style="margin:24px 0; color:#4b5563;">
-      After being added by the team, come back and try again.
-    </p>
-
-    <div style="display:flex; gap:12px; justify-content:center; margin-top:20px;">
-      <button class="btn ghost" onclick="location.reload()" style="min-width:140px;">
-        Try Again
-      </button>
-      <button class="btn primary" onclick="location.reload()" style="min-width:140px;">
-        Refresh & Sign In Again
-      </button>
-    </div>
-
-    <p style="margin-top:32px; font-size:13px; color:#6b7280;">
-      Need help? Contact Team RC
-    </p>
   </div>
 </div>
 <!-- Your entire existing app content goes here (unchanged) -->
