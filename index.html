@@ -7,20 +7,14 @@
   <style>
     :root { --primary:#4f46e5; --bg:#0b0c10; --card:#ffffff; }
     body { margin:0; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f5f7fb; }
-    .shell { max-width:680px; margin:0 auto; padding:20px; }
-    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:20px; }
-    .card * {
-      box-sizing: border-box;
+    .shell { max-width:680px; margin:0 auto; padding:20px; position:relative; }
+    .card { background:var(--card); border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:20px; position: relative;}
+    .card * { box-sizing: border-box; }
+    
+    /* Keep inputs fully inside */
+    .card input[type="text"], .card input[type="datetime-local"], .card textarea, .card select {
+        width: 100%; max-width: 100%; box-sizing: border-box;
     }
-    /* Keep inputs fully inside, not overflowing */
-    .card input[type="text"],
-    .card input[type="datetime-local"],
-    .card textarea,
-    .card select {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-      }
     h1,h2{ margin:0 0 8px }
     .muted{ color:#6b7280; margin-top:0 }
     .row { display:flex; gap:12px; }
@@ -33,47 +27,43 @@
     label { display:block; font-size:13px; color:#374151; margin-bottom:6px; }
     input[type=text] { width:100%; padding:12px 44px 12px 12px; border:1px solid #e5e7eb; border-radius:12px; outline:none; }
     input[readonly] { background:#f9fafb; }
-    .field {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .field input {
-      flex: 1;
-    }
-    .field .icon-btn {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .icon-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:transparent; padding:6px; cursor:pointer; }
+    .field { position: relative; display: flex; align-items: center; }
+    .field input { flex: 1; }
+    .field .icon-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+    .icon-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:transparent; padding:6px; cursor:pointer; font-size: 1.2rem;}
     .prop-row { display:flex; gap:8px; align-items:center }
     .prop-row .remove { border:0; background:transparent; color:#ef4444; font-size:20px; cursor:pointer; }
     .divider { height:1px; background:#e5e7eb; margin:8px 0 4px }
-    .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-size:14px; display:none }
+    .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; font-size:14px; display:none; z-index: 999; text-align:center; min-width: 200px;}
+    
     /* Scanner modal */
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:16px; z-index: 1000;}
     .modal > .sheet { background:#000; width:min(720px, 96vw); border-radius:16px; overflow:hidden; }
     #video { width:100%; background:#000; aspect-ratio:3/4; object-fit:cover }
     .modal .bar { display:flex; gap:8px; padding:10px; background:#0f172a; color:#fff; align-items:center; justify-content:space-between }
     .modal .bar .btn { border-radius:8px; padding:8px 10px; }
-    .signin-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-top: 30px;
-      }
+    
+    .signin-wrapper { display: flex; justify-content: center; margin-top: 30px; }
+    
+    /* Lang Switcher */
+    .lang-btn {
+        position: absolute; top: 20px; right: 20px; z-index: 50;
+        background: #f3f4f6; border: 1px solid #e5e7eb; 
+        padding: 6px 12px; border-radius: 20px; 
+        font-size: 13px; font-weight: 600; cursor: pointer; color: #374151;
+    }
+    .lang-btn:hover { background: #e5e7eb; }
   </style>
 </head>
 <body>
-<!-- ============================================= -->
-<!--  GOOGLE SIGN-IN + AUTHORIZATION (embedded) -->
-<!-- ============================================= -->
+
+
 <div id="loginScreen">
   <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
     <div class="card" style="text-align:center; max-width:400px; width:100%;">
-      <h1>Borrow / Return / Inventory</h1>
-      <p class="muted">Please sign in with your Google account</p>
+      <button id="globalLangBtn" class="lang-btn" onclick="toggleLanguage()">中 / EN</button>
+      <h1 data-i18n="appTitle">Borrow / Return / Inventory</h1>
+      <p class="muted" data-i18n="signinMsg">Please sign in with your Google account</p>
       <div class="signin-wrapper">
         <div class="g_id_signin"
              data-type="standard"
@@ -83,155 +73,131 @@
              data-shape="rectangular">
         </div>
        </div>
-      <div style="margin:30px 0;">
-      </div>
-
-      <p style="font-size:13px; color:#6b7280;">Only authorized emails can access this tool</p>
+      <div style="margin:30px 0;"></div>
+      <p style="font-size:13px; color:#6b7280;" data-i18n="authOnlyMsg">Only authorized emails can access this tool</p>
     </div>
   </div>
 </div>
 
-<!-- =============== BLOCKED / NOT AUTHORIZED SCREEN =============== -->
 <div id="blockedScreen" style="display:none;">
   <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:#fef2f2;">
     <div class="card" style="text-align:center; max-width:520px; width:100%; background:#ffffff; border:2px solid #fca5a5; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
       
-      <h2 style="font-size:28px; margin-bottom:16px; color:#dc2626;">Access Denied</h2>
+      <h2 style="font-size:28px; margin-bottom:16px; color:#dc2626;" data-i18n="accessDenied">Access Denied</h2>
       
-      <p style="font-size:16px; line-height:1.7; margin:20px 0; color:#4b5563;">
+      <p style="font-size:16px; line-height:1.7; margin:20px 0; color:#4b5563;" data-i18n="noPermissionMsg">
         Your Google account does not have edit permission on the shared log spreadsheet.
       </p>
 
       <div style="background:#fee2e2; padding:20px; border-radius:12px; margin:24px 0; font-size:15px; line-height:1.8; color:#991b1b; border-left:5px solid #dc2626;">
-        <strong>What you can do:</strong><br><br>
+        <strong data-i18n="whatCanDo">What you can do:</strong><br><br>
         
-        1. <strong>Check if you are already authorized. If yes, add your email in the sheet of "authnames"</strong><br>
+        1. <strong data-i18n="checkAuth">Check if you are already authorized. If yes, add your email in the sheet of "authnames"</strong><br>
         <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit?gid=59643720" 
            target="_blank" 
            style="color:#1d4ed8; font-weight:600; text-decoration:underline;">
-           Open Authorized Users List
+           <span data-i18n="openAuthList">Open Authorized Users List</span>
         </a><br><br>
         
-        2. <strong>If you don't have right to edit, please check with your Team RC to add your email address to the authorized group</strong><br>
+        2. <strong data-i18n="askRC">If you don't have right to edit, please check with your Team RC to add your email address to the authorized group</strong><br>
         <a href="https://docs.google.com/spreadsheets/d/1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE/edit?gid=388466886" 
            target="_blank" 
            style="color:#1d4ed8; font-weight:600; text-decoration:underline;">
-           Open team RC handle group List
+           <span data-i18n="openGroupList">Open team RC handle group List</span>
         </a><br><br>
       </div>
 
-      <p style="margin:28px 0 12px; color:#4b5563; font-size:15px;">
+      <p style="margin:28px 0 12px; color:#4b5563; font-size:15px;" data-i18n="tryAgainMsg">
         After being added, come back and try again.
       </p>
 
       <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:20px;">
-        <button class="btn ghost" onclick="location.reload()" style="padding:12px 24px; font-size:16px;">
+        <button class="btn ghost" onclick="location.reload()" style="padding:12px 24px; font-size:16px;" data-i18n="tryAgainBtn">
           Try Again
         </button>
-        <button class="btn primary" onclick="location.reload()" style="padding:12px 28px; font-size:16px;">
+        <button class="btn primary" onclick="location.reload()" style="padding:12px 28px; font-size:16px;" data-i18n="refreshBtn">
           Refresh & Sign In Again
         </button>
       </div>
 
       <p style="margin-top:36px; font-size:13px; color:#6b7280;">
-        Need help? Contact <strong>Team RC</strong>
+        <span data-i18n="needHelp">Need help? Contact</span> <strong>Team RC</strong>
       </p>
     </div>
   </div>
 </div>
-<!-- Your entire existing app content goes here (unchanged) -->
+
 <div id="app" style="display:none;">
   <div class="shell">
     <script type="module">
-      import {
-        BrowserMultiFormatReader,
-        BrowserCodeReader
-      } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+      import { BrowserMultiFormatReader, BrowserCodeReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+      import { DecodeHintType, BarcodeFormat } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      window.ZXingBrowser = { BrowserMultiFormatReader, BrowserCodeReader, DecodeHintType, BarcodeFormat, hints };
+      console.log("ZXing loaded");
+    </script>
     
-      import {
-        DecodeHintType,
-        BarcodeFormat
-      } from "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.0/+esm";
-
-  const hints = new Map();
-  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-    BarcodeFormat.QR_CODE,
-    BarcodeFormat.CODE_128,
-    BarcodeFormat.CODE_39,
-    BarcodeFormat.EAN_13,
-    BarcodeFormat.EAN_8
-  ]);
-  hints.set(DecodeHintType.TRY_HARDER, true);
-
-  // ---- expose global ----
-  window.ZXingBrowser = {
-    BrowserMultiFormatReader,
-    BrowserCodeReader,
-    DecodeHintType,
-    BarcodeFormat,
-    hints
-  };
-
-  console.log("ZXing 0.1.5 + hints loaded");
-</script>
-    
-  <div class="shell">
     <div class="card" id="home">
-      <!-- Header with title left + logout right -->
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
         <div>
-          <h1>Borrow / Return / Inventory</h1>
-          <p class="muted">Hello, <span id="userName" style="font-weight:600;"></span>!</p>
-          <p class="muted">Choose an action</p>
+            <h1 data-i18n="appTitle">Borrow / Return / Inventory</h1>
+            <p class="muted"><span data-i18n="hello">Hello</span>, <span id="userName" style="font-weight:600;"></span>!</p>
+            <p class="muted" data-i18n="chooseAction">Choose an action</p>
         </div>
-    
-        <button class="btn ghost" onclick="logout()">
-          Log out
-        </button>
-      </div>
-    
-      <!-- Action buttons -->
+
+        <div style="display:flex; gap: 8px;">            
+            <button class="btn ghost" onclick="logout()" data-i18n="logout">
+            Log out
+            </button>
+        </div>
+        </div>
+      
       <div class="row" style="margin-top:12px; gap:12px;">
-        <button class="btn primary full" onclick="openForm('Borrow')">Borrow<br>借</button>
-        <button class="btn ghost full" onclick="openForm('Return')">Return<br>還</button>
-        <button class="btn ghost full" onclick="openForm('Inventory')">Inventory<br>盤點</button>
+        <button class="btn primary full" onclick="openForm('Borrow')" data-i18n="btnBorrow">Borrow</button>
+        <button class="btn ghost full" onclick="openForm('Return')" data-i18n="btnReturn">Return</button>
+        <button class="btn ghost full" onclick="openForm('Inventory')" data-i18n="btnInventory">Inventory</button>
       </div>
     </div>
     
     <div class="card" id="formCard" style="display:none; margin-top:16px">
       <h2 id="formTitle">Form</h2>
       <div class="grid" style="margin-top:12px">
-        <div><label>Date</label><input id="date" type="text" readonly></div>
-        <div><label>Name</label></div>
+        <div><label data-i18n="labelDate">Date</label><input id="date" type="text" readonly></div>
+        <div><label data-i18n="labelName">Name</label></div>
         <div class="field">
-          <input id="name" type="text" placeholder="Scan or type a name">
+          <input id="name" type="text" placeholder="Scan or type a name" data-placeholder="phName">
            <button class="icon-btn" aria-label="Scan name" onclick="openScanner('name')">📷</button>
         </div>
         <div>
           <div class="row" style="align-items:center; justify-content:space-between">
-            <label style="margin:0">Property ID(s)</label>
-            <button class="btn ghost" onclick="addPropertyRow()">+ Add line</button>
+            <label style="margin:0" data-i18n="labelPropID">Property ID(s)</label>
+            <button class="btn ghost" onclick="addPropertyRow()" data-i18n="btnAddLine">+ Add line</button>
           </div>
           <div id="props" class="grid" style="margin-top:8px"></div>
         </div>
         <div class="divider"></div>
         <div class="row">
-          <button class="btn full" onclick="goHome()">Back</button>
-          <button class="btn primary full" onclick="submitForm()">Confirm / Submit</button>
+          <button class="btn full" onclick="goHome()" data-i18n="btnBack">Back</button>
+          <button class="btn primary full" onclick="submitForm()" data-i18n="btnConfirm">Confirm / Submit</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Scanner modal -->
   <div class="modal" id="scannerModal" role="dialog">
       <div class="sheet">
         <video id="video" autoplay playsinline muted></video>
         <div class="bar">
-          <div>Point camera at a QR code…</div>
+          <div data-i18n="scanHint">Point camera at a QR code…</div>
           <div>
-            <button class="btn" onclick="toggleTorch()">Torch</button>
-            <button class="btn" onclick="closeScanner()">Close</button>
+            <button class="btn" onclick="toggleTorch()" data-i18n="btnTorch">Torch</button>
+            <button class="btn" onclick="closeScanner()" data-i18n="btnClose">Close</button>
           </div>
         </div>
       </div>
@@ -242,6 +208,147 @@
 <script>
 /** ====== CONFIG ====== */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxzwLaLKmP0ixib-GxiaKOvT8l_-0ZeIeJXOWyhktqEqaROAc_QeVKjTWclgFL-gWweA/exec';
+
+/** ====== TRANSLATIONS ====== */
+const i18n = {
+    en: {
+        appTitle: "Borrow / Return / Inventory",
+        signinMsg: "Please sign in with your Google account",
+        authOnlyMsg: "Only authorized emails can access this tool",
+        accessDenied: "Access Denied",
+        noPermissionMsg: "Your Google account does not have edit permission on the shared log spreadsheet.",
+        whatCanDo: "What you can do:",
+        checkAuth: "1. Check if you are already authorized. If yes, add your email in the sheet of \"authnames\"",
+        openAuthList: "Open Authorized Users List",
+        askRC: "2. If you don't have right to edit, please check with your Team RC to add your email address to the authorized group",
+        openGroupList: "Open team RC handle group List",
+        tryAgainMsg: "After being added, come back and try again.",
+        tryAgainBtn: "Try Again",
+        refreshBtn: "Refresh & Sign In Again",
+        needHelp: "Need help? Contact",
+        hello: "Hello",
+        chooseAction: "Choose an action",
+        logout: "Log out",
+        btnBorrow: "Borrow",
+        btnReturn: "Return",
+        btnInventory: "Inventory",
+        formSuffix: "Form",
+        Borrow: "Borrow",
+        Return: "Return",
+        Inventory: "Inventory",
+        labelDate: "Date",
+        labelName: "Name",
+        phName: "Scan or type a name",
+        labelPropID: "Property ID(s)",
+        phPropID: "Property ID",
+        btnAddLine: "+ Add line",
+        btnBack: "Back",
+        btnConfirm: "Confirm / Submit",
+        scanHint: "Point camera at a code...",
+        btnTorch: "Torch",
+        btnClose: "Close",
+        toastKeepOne: "Keep at least one line",
+        toastTorchNotSup: "Torch not supported",
+        toastTorchFail: "Torch failed",
+        toastNameEmpty: "Name cannot be empty",
+        toastIdEmpty: "Enter at least one Property ID",
+        toastSubmitted: "Submitted {n} item(s)",
+        toastSubmitFail: "Submit failed: ",
+        toastScanned: "Scanned",
+        toastCameraErr: "Camera error: "
+    },
+    tw: {
+        appTitle: "借用 / 歸還 / 盤點",
+        signinMsg: "請使用您的 Google 帳號登入",
+        authOnlyMsg: "僅授權的電子郵件可存取此工具",
+        accessDenied: "存取被拒",
+        noPermissionMsg: "您的 Google 帳號沒有編輯共用記錄試算表的權限。",
+        whatCanDo: "您可以做的是：",
+        checkAuth: "1. 檢查您是否已被授權。如果是，請將您的電子郵件新增至 'authnames' 工作表",
+        openAuthList: "開啟授權使用者清單",
+        askRC: "2. 如果您沒有編輯權限，請確認 Team RC 已將您的電子郵件新增至授權群組",
+        openGroupList: "開啟 Team RC 處理群組清單",
+        tryAgainMsg: "新增後，請返回並重試。",
+        tryAgainBtn: "重試",
+        refreshBtn: "重新整理並登入",
+        needHelp: "需要協助？請聯絡",
+        hello: "你好",
+        chooseAction: "請選擇操作",
+        logout: "登出",
+        btnBorrow: "借用",
+        btnReturn: "歸還",
+        btnInventory: "盤點",
+        formSuffix: "表單",
+        Borrow: "借用",
+        Return: "歸還",
+        Inventory: "盤點",
+        labelDate: "日期",
+        labelName: "姓名",
+        phName: "掃描或輸入姓名",
+        labelPropID: "資產編號",
+        phPropID: "資產編號",
+        btnAddLine: "+ 新增一行",
+        btnBack: "返回",
+        btnConfirm: "確認 / 送出",
+        scanHint: "將鏡頭對準條碼...",
+        btnTorch: "手電筒",
+        btnClose: "關閉",
+        toastKeepOne: "請保留至少一行",
+        toastTorchNotSup: "不支援手電筒",
+        toastTorchFail: "手電筒開啟失敗",
+        toastNameEmpty: "姓名不能為空",
+        toastIdEmpty: "請輸入至少一個資產編號",
+        toastSubmitted: "已送出 {n} 個項目",
+        toastSubmitFail: "送出失敗：",
+        toastScanned: "掃描成功",
+        toastCameraErr: "相機錯誤："
+    }
+};
+
+let currentLang = localStorage.getItem('appLang') || 'tw';
+
+function toggleLanguage() {
+    currentLang = currentLang === 'en' ? 'tw' : 'en';
+    localStorage.setItem('appLang', currentLang);
+    applyLanguage();
+}
+
+function applyLanguage() {
+    // 1. Update simple text elements
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[currentLang][key]) {
+            el.textContent = i18n[currentLang][key];
+        }
+    });
+
+    // 2. Update Placeholders
+    document.querySelectorAll('[data-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-placeholder');
+        if (i18n[currentLang][key]) {
+            el.placeholder = i18n[currentLang][key];
+        }
+    });
+    
+    // 3. Update Dynamic generated inputs (Property IDs)
+    const propInputs = document.querySelectorAll('#props input');
+    propInputs.forEach(input => {
+        input.placeholder = i18n[currentLang]['phPropID'];
+    });
+
+    // 4. Update Form Title if visible
+    if(document.getElementById('formCard').style.display !== 'none'){
+        updateFormTitle();
+    }
+}
+
+function t(key) {
+    return i18n[currentLang][key] || key;
+}
+
+// Initial Apply
+applyLanguage();
+
 /** ====== STATE ====== */
 let mode = 'Borrow';
 let currentScanTargetId = null;
@@ -249,28 +356,39 @@ let codeReader = null;
 let currentDeviceId = null;
 let torchOn = false;
 let currentInputEl = null;
+
 /** ====== UTILS ====== */
 function fmtDate(d=new Date()){
   const pad = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
 function toast(msg, ms=2000){
   const el = document.getElementById('toast');
   el.textContent = msg; el.style.display='block';
   clearTimeout(el._t); el._t = setTimeout(()=> el.style.display='none', ms);
 }
+
 function goHome(){
   stopScanner();
   document.getElementById('formCard').style.display='none';
   document.getElementById('home').style.display='block';
 }
 
+function updateFormTitle() {
+    const label = i18n[currentLang]['formSuffix'];
+    const modeTrans = i18n[currentLang][mode]; // Borrow/Return/Inventory translated
+    document.getElementById('formTitle').textContent = `${modeTrans} ${label}`;
+}
+
 /** ====== HOME -> FORM ====== */
 function openForm(selected){
-  mode = selected;
+  mode = selected; // 'Borrow', 'Return', 'Inventory' (English keys)
   document.getElementById('home').style.display='none';
   document.getElementById('formCard').style.display='block';
-  document.getElementById('formTitle').textContent = `${mode} Form`;
+  
+  updateFormTitle();
+  
   document.getElementById('date').value = fmtDate();
   document.getElementById('name').value = '';
   const wrap = document.getElementById('props');
@@ -290,19 +408,22 @@ function updateRemoveButtons() {
 
 function addPropertyRow(value=''){
   const wrap = document.getElementById('props');
-  const idx = wrap.children.length;
   const row = document.createElement('div');
   row.className = 'prop-row';
+  
+  // Get localized placeholder
+  const ph = t('phPropID');
+
   row.innerHTML = `
     <div class="field col">
-      <input type="text" placeholder="Property ID" value="${value.replaceAll('"','&quot;')}" oninput="maybeAutogrow(this)">
+      <input type="text" placeholder="${ph}" value="${value.replaceAll('"','&quot;')}" oninput="maybeAutogrow(this)">
       <button class="icon-btn" aria-label="Scan Property" onclick="openScanner(null, this.previousElementSibling)">📷</button>
     </div>
     <button class="remove" title="Remove" onclick="removeRow(this)">✕</button>
   `;
   wrap.appendChild(row);
   maybeAutogrow(row.querySelector('input'));
-  // Auto-add a new empty line when last line gets non-empty
+  // Auto-add
   const input = row.querySelector('input');
   input.addEventListener('input', ()=>{
     const isLast = row === wrap.lastElementChild;
@@ -312,18 +433,11 @@ function addPropertyRow(value=''){
    updateRemoveButtons(); 
 }
 
-function maybeAutogrow(input){
-  // noop placeholder; could auto-resize if needed
-}
-
-function openScannerForSibling(btn){
-  const input = btn.parentElement.querySelector('input');
-  input && openScanner(null, input);
-}
+function maybeAutogrow(input){ /* noop */ }
 
 function removeRow(btn){
   const wrap = document.getElementById('props');
-  if (wrap.children.length <= 1) { toast('Keep at least one line'); return; }
+  if (wrap.children.length <= 1) { toast(t('toastKeepOne')); return; }
   const row = btn.closest('.prop-row');
   row && wrap.removeChild(row);
    updateRemoveButtons(); 
@@ -335,26 +449,15 @@ async function toggleTorch(){
     const track = stream?.getVideoTracks?.()[0];
     if (!track) return;
     const caps = track.getCapabilities?.();
-    if (!caps || !caps.torch) { toast('Torch not supported'); return; }
+    if (!caps || !caps.torch) { toast(t('toastTorchNotSup')); return; }
     torchOn = !torchOn;
     await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-  }catch(e){ toast('Torch failed'); }
+  }catch(e){ toast(t('toastTorchFail')); }
 }
 
 function stopScanner(){
-  try{
-    codeReader && codeReader.reset();
-  }catch{} finally{
-    codeReader = null;
-    torchOn = false;
-  }
-}
-  
-function showApp(user) {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const displayName = user.name || user.email.split('@')[0];
-  document.getElementById('userName').textContent = displayName;
+  try{ codeReader && codeReader.reset(); }catch{} 
+  finally{ codeReader = null; torchOn = false; }
 }
   
 function closeScanner(){
@@ -366,52 +469,41 @@ function closeScanner(){
 async function submitForm(){
   const date = document.getElementById('date').value.trim();
   const name = document.getElementById('name').value.trim();
-  const allInputs = Array.from(
-    document.querySelectorAll('#props .prop-row input')
-  );
+  const allInputs = Array.from(document.querySelectorAll('#props .prop-row input'));
   const ids = allInputs.map(i => i.value.trim()).filter(Boolean);
-  // Validate Name
-  if (!name.trim()) {
-    toast('Name cannot be empty');
-    return;
-  }
-  if (ids.length === 0) {
-    toast('Enter at least one Property ID');
-    return;
-  }
+  
+  if (!name.trim()) { toast(t('toastNameEmpty')); return; }
+  if (ids.length === 0) { toast(t('toastIdEmpty')); return; }
    
- const payload = { mode, date, name, propertyIds: ids };
+  const payload = { mode, date, name, propertyIds: ids };
 
- // Must have at least one non-empty property ID
- if (ids.length === 0) {
-   toast('Enter at least one Property ID');
-   return;
- }
-  // NOTE: Apps Script often redirects (302) and lacks CORS headers.
-  // Use no-cors fire-and-forget; we assume success if fetch doesn't throw.
   try{
     await fetch(SCRIPT_URL, {
       method:'POST',
-      mode:'no-cors', // avoids CORS preflight; can't read response
+      mode:'no-cors', 
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify(payload),
     });
-    toast(`Submitted ${ids.length} item(s)`);
-    // Return to home after a short delay
+    
+    // Replace {n} in translation string
+    let msg = t('toastSubmitted').replace('{n}', ids.length);
+    toast(msg);
+    
     setTimeout(()=> goHome(), 400);
   }catch(e){
-    toast('Submit failed: ' + e);
+    toast(t('toastSubmitFail') + e);
   }
 }
 
 /** ====== BOOT ====== */
 if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
-  document.body.innerHTML = '<div class="shell"><div class="card"><h2>HTTPS required</h2><p>Camera access needs HTTPS. Please host this page on HTTPS (GitHub Pages / Netlify) or run locally at http://localhost.</p></div></div>';
+  document.body.innerHTML = '<div class="shell"><div class="card"><h2>HTTPS required</h2><p>Camera access needs HTTPS.</p></div></div>';
 }
+
 /** ====== SCANNER ====== */
 async function openScanner(targetId=null, directInputEl=null) {
   if (!window.ZXingBrowser) { alert("ZXingBrowser not loaded yet"); return; }
-  const { BrowserMultiFormatReader, BrowserCodeReader, hints } = window.ZXingBrowser;
+  const { BrowserMultiFormatReader, hints } = window.ZXingBrowser;
   codeReader = new BrowserMultiFormatReader(hints);
   currentInputEl = directInputEl || (targetId ? document.getElementById(targetId) : null);
 
@@ -431,30 +523,20 @@ async function openScanner(targetId=null, directInputEl=null) {
     }
     currentInputEl = null;
     closeScanner();
-    toast('Scanned');
+    toast(t('toastScanned'));
   };
 
   try {
-    // 1) Ask browser for a decent resolution from the back camera
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      }
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     video.srcObject = stream;
     await new Promise(r => {
-      video.onloadedmetadata = () => {
-        video.play().catch(()=>{});
-        r();
-      };
+      video.onloadedmetadata = () => { video.play().catch(()=>{}); r(); };
     });
-
-    // 2) Let ZXing decode continuously from this video element
     await codeReader.decodeFromVideoElement(video, cb);
   } catch (e) {
-    toast(`Camera error: ${e.name || 'Error'} — ${e.message || e}`);
+    toast(`${t('toastCameraErr')} ${e.name || 'Error'}`);
   }
 } 
 </script>
@@ -462,34 +544,32 @@ async function openScanner(targetId=null, directInputEl=null) {
   </div>
 </div>
 
-<!-- Google Platform Library -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
 // ==================== CONFIGURATION ====================
   const SHEET_ID        = '1AQ4cvZ_SjbIkW-ZwJz2QbB_67Sepo4RUUtlkyNGsutE'; 
   const CLIENT_ID       = '941275028852-6d7m0cbgpa67vvhrsspgcn0a81m03hc9.apps.googleusercontent.com';
-  const SHEET_NAME= 'authnames'
-  const RANGE   = 'A:A';        // change sheet name if needed
+  const SHEET_NAME      = 'authnames'
+  const RANGE           = 'A:A'; 
 // =====================================================
 
 function parseCsvToEmails(csvText) {
-  return csvText
-    .split('\n')
-    .flatMap(line => line.split(','))
-    .map(e => e.replace(/"/g, '').trim().toLowerCase())
-    .filter(Boolean);
+  return csvText.split('\n').flatMap(line => line.split(',')).map(e => e.replace(/"/g, '').trim().toLowerCase()).filter(Boolean);
 }
 
 function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   if (user) document.getElementById('userName').textContent = user.name || user.email;
+  // Ensure language is applied when app shows (in case of cached user)
+  applyLanguage();
 }
 
 function showBlocked() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('blockedScreen').style.display = 'block';
+  applyLanguage();
 }
 
 function logout() {
@@ -497,32 +577,23 @@ function logout() {
   location.reload();
 }
 
-// Check if user was already authorized (bypass login forever)
 window.addEventListener('load', () => {
   const saved = localStorage.getItem('inventoryAppUser');
   if (saved) {
     const user = JSON.parse(saved);
     showApp(user);
-    return; // Skip login completely
+    return;
   }
-
-  // Initialize Google Sign-In
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: handleCredentialResponse,
-    auto_select: false
-  });
-
-  google.accounts.id.renderButton(
-    document.querySelector('.g_id_signin'),
-    { theme: "outline", size: "large" }
-  );
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: handleCredentialResponse, auto_select: false });
+  google.accounts.id.renderButton( document.querySelector('.g_id_signin'), { theme: "outline", size: "large" } );
+  
+  // Initial Lang Apply
+  applyLanguage();
 });
 
 async function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email.toLowerCase();
-
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
   
   try {
@@ -530,51 +601,29 @@ async function handleCredentialResponse(response) {
     const allowedEmails = parseCsvToEmails(csv);
 
     if (allowedEmails.includes(email)) {
-      // Log SUCCESS login to Apps Script
       try {
         fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',             // fire-and-forget
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'login-log',
-            email,
-            status: 'AUTHORIZED',
-            note: 'authnames-list'
-          })
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'login-log', email, status: 'AUTHORIZED', note: 'authnames-list' })
         });
-      } catch (e) {
-        console.warn('Login log (authorized) failed:', e);
-      }
+      } catch (e) { console.warn('Login log failed', e); }
 
       localStorage.setItem('inventoryAppUser', JSON.stringify(payload));
       showApp(payload);
     } else {
-      // Log BLOCKED login to Apps Script
       try {
         fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'login-log',
-            email,
-            status: 'BLOCKED',
-            note: 'not-in-authnames'
-          })
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'login-log', email, status: 'BLOCKED', note: 'not-in-authnames' })
         });
-      } catch (e) {
-        console.warn('Login log (blocked) failed:', e);
-      }
-
+      } catch (e) { console.warn('Login log failed', e); }
       showBlocked();
     }
   } catch (e) {
     console.error('Auth error:', e);
-    alert('Error checking authorization. Check Sheet sharing or internet.');
+    alert('Error checking authorization.');
   }
 }
-
 </script>
 </body>
 </html>
